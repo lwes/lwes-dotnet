@@ -43,6 +43,12 @@
 		/// becomes <em>true</em>; otherwise <em>null</em></returns>
 		internal static byte[] AcquireBuffer(Func<bool> cancelSignal)
 		{
+			//
+			// This strategy equates to a spinwait.
+			// It may be worthwhile to introduce a sleep after some number of failures,
+			// although, I'm wary that newer requests would convoy in front of older,
+			// sleeping requests. More testing is necessary. -Pdc
+			//
 			int init, fin = Thread.VolatileRead(ref __memoryInUse);
 			while (true)
 			{

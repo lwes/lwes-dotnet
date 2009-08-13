@@ -1,6 +1,8 @@
 ﻿namespace Org.Lwes.Emitter
 {
 	using System;
+	using System.Net;
+	using System.Net.Sockets;
 	using System.Text;
 	using System.Threading;
 
@@ -15,11 +17,12 @@
 	{
 		#region Fields
 
+		IEventTemplateDB _db;
+		IEmitter _emitter;
 		SupportedEncoding _enc;
 		Encoding _encoding;
-		bool _initialized;
+		int _initialized;
 		bool _performValidation;
-		IEventTemplateDB _templateDB;
 
 		#endregion Fields
 
@@ -42,6 +45,37 @@
 
 		#endregion Constructors
 
+		#region Enumerations
+
+		enum EmitterState
+		{
+			Unknown = 0,
+			Initializing = 1,
+			Active = 2,
+			StopSignaled = 3,
+			Stopped = 4,
+			Stopping = 5,
+		}
+
+		#endregion Enumerations
+
+		#region Nested Interfaces
+
+		interface IEmitter : IDisposable
+		{
+			#region Methods
+
+			void Emit(Event ev);
+
+			void Start(IEventTemplateDB db
+				, IPEndPoint sendToEP
+				, Action<Socket, IPEndPoint> finishSocket);
+
+			#endregion Methods
+		}
+
+		#endregion Nested Interfaces
+
 		#region Properties
 
 		/// <summary>
@@ -57,7 +91,7 @@
 		/// </summary>
 		public virtual bool IsInitialized
 		{
-			get { return _initialized; }
+			get { return Thread.VolatileRead(ref _initialized) == (int)EmitterState.Active; }
 		}
 
 		/// <summary>
@@ -65,7 +99,7 @@
 		/// </summary>
 		public IEventTemplateDB TemplateDB
 		{
-			get { return _templateDB; }
+			get { return _db; }
 		}
 
 		/// <summary>
@@ -88,12 +122,12 @@
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName)
 		{
-			if (!_initialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
+			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
 			if (eventName == null) throw new ArgumentNullException("eventName");
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
 			Event result;
-			if (!_templateDB.TryCreateEvent(eventName, out result, _performValidation, _enc))
+			if (!_db.TryCreateEvent(eventName, out result, _performValidation, _enc))
 			{
 				result = new Event(new EventTemplate(false, eventName), false, _enc);
 			}
@@ -108,12 +142,12 @@
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName, SupportedEncoding enc)
 		{
-			if (!_initialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
+			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
 			if (eventName == null) throw new ArgumentNullException("eventName");
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
 			Event result;
-			if (!_templateDB.TryCreateEvent(eventName, out result, _performValidation, enc))
+			if (!_db.TryCreateEvent(eventName, out result, _performValidation, enc))
 			{
 				result = new Event(new EventTemplate(false, eventName), false, enc);
 			}
@@ -128,12 +162,12 @@
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName, bool validate)
 		{
-			if (!_initialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
+			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
 			if (eventName == null) throw new ArgumentNullException("eventName");
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
 			Event result;
-			if (!_templateDB.TryCreateEvent(eventName, out result, validate, _enc))
+			if (!_db.TryCreateEvent(eventName, out result, validate, _enc))
 			{
 				result = new Event(new EventTemplate(false, eventName), validate, _enc);
 			}
@@ -149,12 +183,12 @@
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName, bool validate, SupportedEncoding enc)
 		{
-			if (!_initialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
+			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
 			if (eventName == null) throw new ArgumentNullException("eventName");
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
 			Event result;
-			if (!_templateDB.TryCreateEvent(eventName, out result, validate, enc))
+			if (!_db.TryCreateEvent(eventName, out result, validate, enc))
 			{
 				result = new Event(new EventTemplate(false, eventName), validate, enc);
 			}
@@ -174,33 +208,11 @@
 		/// Emits an event to the event system.
 		/// </summary>
 		/// <param name="evt">the event being emitted</param>
-		public abstract void Emit(Event evt);
-
-		/// <summary>
-		/// Initializes the emitter.
-		/// </summary>
-		/// <param name="enc">encoding the emitter should use for character data.</param>
-		/// <param name="performValidation">whether the emitter validates emitted messages</param>
-		/// <param name="db">a template DB to use when creating events</param>
-		public void Initialize(SupportedEncoding enc, bool performValidation, IEventTemplateDB db)
+		public void Emit(Event evt)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
 
-			_enc = enc;
-			_encoding = Constants.GetEncoding((short)enc);
-			_performValidation = performValidation;
-			_templateDB = db;
-
-			_initialized = true;
-		}
-
-		/// <summary>
-		/// Ensures the emitter has been initialized.
-		/// </summary>
-		/// <exception cref="InvalidOperationException">thrown if the emitter has not yet been initialized.</exception>
-		protected void CheckInitialized()
-		{
-			if (!_initialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
+			_emitter.Emit(evt);
 		}
 
 		/// <summary>
@@ -209,8 +221,189 @@
 		/// <param name="disposing">Indicates whether the object is being disposed</param>
 		protected virtual void Dispose(bool disposing)
 		{
+			Util.Dispose(ref _emitter);
+		}
+
+		/// <summary>
+		/// Initializes the emitter.
+		/// </summary>
+		/// <param name="enc">encoding the emitter should use for character data.</param>
+		/// <param name="performValidation">whether the emitter validates emitted messages</param>
+		/// <param name="db">a template DB to use when creating events</param>
+		protected void Initialize(SupportedEncoding enc, bool performValidation, IEventTemplateDB db
+			, IPEndPoint endpoint, bool parallel, Action<Socket, IPEndPoint> finishSocket)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (endpoint == null) throw new ArgumentNullException("endpoint");
+			if (finishSocket == null) throw new ArgumentNullException("finishSocket");
+
+			if (Interlocked.CompareExchange(ref _initialized, (int)EmitterState.Initializing, (int)EmitterState.Unknown) == (int)EmitterState.Unknown)
+			{
+				_enc = enc;
+				_encoding = Constants.GetEncoding((short)enc);
+				_performValidation = performValidation;
+				_db = db;
+
+				IEmitter emitter = (parallel)
+					? (IEmitter)new ParallelEmitter()
+					: (IEmitter)new DirectEmitter();
+
+				emitter.Start(db, endpoint, finishSocket);
+
+				_emitter = emitter;
+
+				Thread.VolatileWrite(ref _initialized, (int)EmitterState.Active);
+			}
+			else throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
 		}
 
 		#endregion Methods
+
+		#region Nested Types
+
+		class DirectEmitter : IEmitter
+		{
+			#region Fields
+
+			byte[] _buffer;
+			IEventTemplateDB _db;
+			UdpEndpoint _emitEP;
+			EndPoint _sendToEP;
+			int _senderState;
+
+			#endregion Fields
+
+			#region Constructors
+
+			~DirectEmitter()
+			{
+				Dispose(false);
+			}
+
+			#endregion Constructors
+
+			#region Methods
+
+			public void Dispose()
+			{
+				this.Dispose(true);
+				GC.SuppressFinalize(this);
+			}
+
+			public void Emit(Event ev)
+			{
+				if (Thread.VolatileRead(ref _senderState) > (int)EmitterState.Active)
+					throw new InvalidOperationException(Resources.Error_EmitterHasEnteredShutdownState);
+
+				_emitEP.SendTo(_sendToEP, LwesSerializer.Serialize(ev));
+			}
+
+			public void Start(IEventTemplateDB db, IPEndPoint sendToEP, Action<Socket, IPEndPoint> finishSocket)
+			{
+				_db = db;
+				_sendToEP = sendToEP;
+				_buffer = Buffers.AcquireBuffer(null);
+				_emitEP = new UdpEndpoint(sendToEP).Initialize(finishSocket);
+			}
+
+			private void Dispose(bool p)
+			{
+				// Signal background threads...
+				if (Interlocked.CompareExchange(ref _senderState, (int)EmitterState.StopSignaled, (int)EmitterState.Active) == (int)EmitterState.Active)
+				{
+					Thread.Sleep(0);
+					Util.Dispose(ref _emitEP);
+					Buffers.ReleaseBuffer(_buffer);
+					_buffer = null;
+				}
+			}
+
+			#endregion Methods
+		}
+
+		class ParallelEmitter : IEmitter
+		{
+			#region Fields
+
+			byte[] _buffer;
+			IEventTemplateDB _db;
+			UdpEndpoint _emitEP;
+			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
+			EndPoint _sendToEP;
+			int _senderState;
+
+			#endregion Fields
+
+			#region Constructors
+
+			~ParallelEmitter()
+			{
+				Dispose(false);
+			}
+
+			#endregion Constructors
+
+			#region Methods
+
+			public void Dispose()
+			{
+				this.Dispose(true);
+				GC.SuppressFinalize(this);
+			}
+
+			public void Emit(Event ev)
+			{
+				_eventQueue.Enqueue(ev);
+				EnsureSenderIsActive();
+			}
+
+			public void Start(IEventTemplateDB db, IPEndPoint sendToEP, Action<Socket, IPEndPoint> finishSocket)
+			{
+				_db = db;
+				_sendToEP = sendToEP;
+				_buffer = Buffers.AcquireBuffer(null);
+				_emitEP = new UdpEndpoint(sendToEP).Initialize(finishSocket);
+			}
+
+			void Background_Emitter(object unused_state)
+			{
+				Thread.VolatileWrite(ref _senderState, (int)EmitterState.Active);
+				Event ev;
+				while (_eventQueue.Dequeue(out ev))
+				{
+					_emitEP.SendTo(_sendToEP, LwesSerializer.Serialize(ev));
+				}
+				Thread.VolatileWrite(ref _senderState, (int)EmitterState.Stopping);
+
+				while (_eventQueue.Dequeue(out ev))
+				{
+					_emitEP.SendTo(_sendToEP, LwesSerializer.Serialize(ev));
+				}
+			}
+
+			private void Dispose(bool p)
+			{
+				// Signal background threads...
+				if (Interlocked.CompareExchange(ref _senderState, (int)EmitterState.StopSignaled, (int)EmitterState.Active) == (int)EmitterState.Active)
+				{
+					Thread.Sleep(0);
+					Util.Dispose(ref _emitEP);
+					Buffers.ReleaseBuffer(_buffer);
+					_buffer = null;
+				}
+			}
+
+			private void EnsureSenderIsActive()
+			{
+				if (Thread.VolatileRead(ref _senderState) != (int)EmitterState.Active)
+				{
+					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Emitter));
+				}
+			}
+
+			#endregion Methods
+		}
+
+		#endregion Nested Types
 	}
 }

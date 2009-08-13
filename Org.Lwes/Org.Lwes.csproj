@@ -50,6 +50,8 @@
   <ItemGroup>
     <Compile Include="Buffers.cs" />
     <Compile Include="Config\AbstractConfigurationElementCollection.cs" />
+    <Compile Include="Config\TemplateDBConfigurationElementCollection.cs" />
+    <Compile Include="Config\TemplateDBConfigurationSection.cs" />
     <Compile Include="Config\ListenerConfigurationElementCollection.cs" />
     <Compile Include="Config\ListenerConfigurationSection.cs" />
     <Compile Include="Config\EmitterConfigurationElementCollection.cs" />

@@ -17,27 +17,10 @@
 	/// delegate to the ServiceLocator. The ServiceLocator should declare an instance
 	/// of IEventEmitter with the name "eventEmitter".</para>
 	/// <para>If an IoC container is not present, or if a service instance is not defined
-	/// with the name "eventEmitter" then this utility will create a FilePathEventEmitter
-	/// initialized to use the application's base directory to load event specification files (*.esf) files.</para>
+	/// with the name "eventEmitter" then this utility will create a MulticastEventEmitter.</para>
 	/// </remarks>
 	public static class EventEmitter
 	{
-		#if DEBUG
-
-		/// <summary>
-		/// Default value indicating whether validation is performed
-		/// </summary>
-		public static readonly bool DefaultPerformValidation = true;
-
-		#else
-
-		/// <summary>
-		/// Default value indicating whether validation is performed
-		/// </summary>
-		public static readonly bool DefaultPerformValidation = true;
-
-		#endif
-
 		#region Methods
 
 		/// <summary>
@@ -103,7 +86,7 @@
 		{
 			MulticastEventEmitter emitter = new MulticastEventEmitter();
 			emitter.Initialize(SupportedEncoding.Default
-				, DefaultPerformValidation
+				, Constants.DefaultPerformValidation
 				, EventTemplateDB.CreateDefault()
 				, Constants.DefaultMulticastAddress
 				, Constants.CDefaultMulticastPort

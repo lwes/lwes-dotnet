@@ -1,8 +1,11 @@
 ﻿namespace Org.Lwes.DB
 {
 	using System;
+	using System.Configuration;
 
 	using Microsoft.Practices.ServiceLocation;
+
+	using Org.Lwes.Config;
 
 	/// <summary>
 	/// Utility class for accessing the default IEventTemplateDB implementation.
@@ -17,18 +20,6 @@
 	/// </remarks>
 	public static class EventTemplateDB
 	{
-		#region Fields
-
-		/// <summary>
-		/// IoC container key for the default IEventTemplateDB instance.
-		/// </summary>
-		public static readonly string DefaultEventTemplateDBContainerKey = "eventTemplateDB";
-
-		static Object __lock;
-		static WeakReference __pseudoSingleton;
-
-		#endregion Fields
-
 		#region Methods
 
 		/// <summary>
@@ -37,12 +28,12 @@
 		/// </summary>
 		public static IEventTemplateDB CreateDefault()
 		{
-			IEventTemplateDB result = IoCAdapter.CreateFromIoC<IEventTemplateDB>(EventTemplateDB.DefaultEventTemplateDBContainerKey);
+			IEventTemplateDB result = IoCAdapter.CreateFromIoC<IEventTemplateDB>(Constants.DefaultEventTemplateDBContainerKey);
 
 			if (result == null)
 			{ // Either there isn't a default event template defined in the IoC container
 				// or there isn't an IoC container in use... fall back to configuration section.
-				result = CreateFromConfig(DefaultEventTemplateDBContainerKey);
+				result = CreateFromConfig(Constants.DefaultEventTemplateDBConfigName);
 			}
 			if (result == null)
 			{ // Not in IoC and not configured; fallback to programmatic default.
@@ -53,7 +44,17 @@
 
 		public static IEventTemplateDB CreateFromConfig(string name)
 		{
-			return null; // TODO!
+			TemplateDBConfigurationSection namedTemplateDBConfig = null;
+			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;
+			if (config != null)
+			{
+				namedTemplateDBConfig = config.TemplateDBs[name];
+			}
+			if (namedTemplateDBConfig == null) return null;
+
+			FilePathEventTemplateDB db = new FilePathEventTemplateDB();
+			db.InitializeFromFilePath(namedTemplateDBConfig.Path);
+			return db;
 		}
 
 		public static IEventTemplateDB CreateNamedTemplateDB(string name)

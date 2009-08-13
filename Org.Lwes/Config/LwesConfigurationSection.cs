@@ -14,6 +14,7 @@
 		public const string PropertyName_emitters = "emitters";
 		public const string PropertyName_listeners = "listeners";
 		public const string PropertyName_maximumBufferingMemory = "maximumBufferingMemory";
+		public const string PropertyName_templateDBs = "templateDBs";
 		public const string SectionName = "lwes";
 
 		#endregion Fields
@@ -50,6 +51,13 @@
 		{
 			get { return (int)this[PropertyName_maximumBufferingMemory]; }
 			set { this[PropertyName_maximumBufferingMemory] = value; }
+		}
+
+		[ConfigurationProperty(PropertyName_templateDBs, IsDefaultCollection = false
+	, IsRequired = false)]
+		public TemplateDBConfigurationElementCollection TemplateDBs
+		{
+			get { return (TemplateDBConfigurationElementCollection)this[PropertyName_templateDBs]; }
 		}
 
 		#endregion Properties

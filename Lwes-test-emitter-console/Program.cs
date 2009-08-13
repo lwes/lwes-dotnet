@@ -21,14 +21,14 @@
 
 			var control = new { NumberOfEventsToEmit = 10000, MaxNumberOfAttributes = 44 };
 
-			Console.WriteLine(String.Format(@"LWES EventEmitter -
-			This console will generate and emit {0} random events to the LWES", control.NumberOfEventsToEmit.ToString("N0")));
+			Console.WriteLine(String.Format("LWES EventEmitter - \r\nThis console will generate and emit {0} random events to the LWES"
+				, control.NumberOfEventsToEmit.ToString("N0")));
 
 			Thread.Sleep(1000);
 
 			// Create an emitter - this is the emitter named in the lwes/emitters
 			// configuration node.
-			using (IEventEmitter emitter = EventEmitter.CreateNamedEmitter("Default"))
+			using (IEventEmitter emitter = EventEmitter.CreateDefault())
 			{
 				for (int i = 0; i < control.NumberOfEventsToEmit; i++)
 				{

@@ -24,11 +24,14 @@
 		/// IoC container key for the default IEventEmitter instance.
 		/// </summary>
 		public static readonly string DefaultEventEmitterContainerKey = "eventEmitter";
+		public static readonly string DefaultEventListenerConfigName = "default";
 
 		/// <summary>
 		/// IoC container key for the default IEventListener instance.
 		/// </summary>
 		public static readonly string DefaultEventListenerContainerKey = "eventListener";
+		public static readonly string DefaultEventTemplateDBConfigName = "default";
+		public static readonly string DefaultEventTemplateDBContainerKey = "templateDB";
 
 		/// <summary>
 		/// Default address used for multicast listening.
@@ -77,6 +80,22 @@
 		public const int CMaximumBufferingMemory = 0x40000000; // 1GB
 
 		#endregion Fields
+
+		#if DEBUG
+
+		/// <summary>
+		/// Default value indicating whether validation is performed
+		/// </summary>
+		public static readonly bool DefaultPerformValidation = true;
+
+		#else
+
+		/// <summary>
+		/// Default value indicating whether validation is performed
+		/// </summary>
+		public static readonly bool DefaultPerformValidation = true;
+
+		#endif
 
 		#region Constructors
 

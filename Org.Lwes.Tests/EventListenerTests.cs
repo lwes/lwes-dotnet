@@ -37,7 +37,7 @@
 				}
 			};
 
-			IEventListener listener = EventListener.Default;
+			IEventListener listener = EventListener.CreateDefault();
 			Assert.IsNotNull(listener);
 			listener.OnEventArrival += new HandleEventArrival(listener_OnEventArrival);
 

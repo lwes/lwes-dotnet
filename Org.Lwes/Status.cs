@@ -24,12 +24,21 @@
 
 		public E State
 		{
-			get { return (E)Enum.ToObject(typeof(E), _status); }
+			get { return (E)Enum.ToObject(typeof(E), Thread.VolatileRead(ref _status)); }
 		}
 
 		#endregion Properties
 
 		#region Methods
+
+		/// <summary>
+		/// Transitions to the given state.
+		/// </summary>
+		/// <param name="value">the target state</param>
+		public void ForceTransition(E value)
+		{
+			Thread.VolatileWrite(ref _status, Convert.ToInt32(value));
+		}
 
 		/// <summary>
 		/// Performs a state transition if the current state compares greater than the <paramref name="comparand"/>

@@ -148,12 +148,6 @@
 		{
 			#region Fields
 
-			/// <summary>
-			/// Time (milliseconds) that a thread will sleep/pulse
-			/// while waiting for a buffer to become available.
-			/// </summary>
-			static readonly int AcquireBufferYieldDelayMS = 10;
-
 			EndPoint _anyEP;
 			byte[] _buffer;
 			Action<Event> _callback;

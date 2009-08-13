@@ -1,13 +1,12 @@
 ﻿namespace Org.Lwes.Listener
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
+	using System.Configuration;
 	using System.Net;
-	using System.Text;
 
 	using Microsoft.Practices.ServiceLocation;
 
+	using Org.Lwes.Config;
 	using Org.Lwes.DB;
 
 	/// <summary>
@@ -18,76 +17,81 @@
 	/// delegate to the ServiceLocator. The ServiceLocator should declare an instance
 	/// of IEventListener with the name "eventListener".</para>
 	/// <para>If an IoC container is not present, or if a service instance is not defined
-	/// with the name "eventListener" then this utility will create a FilePathEventListener
-	/// initialized to use the application's base directory to load event specification files (*.esf) files.</para>
+	/// with the name "eventListener" then this utility will create a MutlicastEventListener.</para>
 	/// </remarks>
 	public static class EventListener
 	{
-		#region Fields
-
-		static Object __lock;
-		static WeakReference __pseudoSingleton;
-
-		#endregion Fields
-
-		#region Properties
+		#region Methods
 
 		/// <summary>
 		/// Accesses the default instance of the IEventListener. Delegates to
 		/// an IoC container if present.
 		/// </summary>
-		public static IEventListener Default
+		public static IEventListener CreateDefault()
 		{
-			get
+			IEventListener result = IoCAdapter.CreateFromIoC<IEventListener>(Constants.DefaultEventListenerContainerKey);
+
+			if (result == null)
+			{ // Either there isn't a default event template defined in the IoC container
+				// or there isn't an IoC container in use... fall back to configuration section.
+				result = CreateFromConfig(Constants.DefaultEventListenerConfigName);
+			}
+			if (result == null)
+			{ // Not in IoC and not configured; fallback to programmatic default.
+				result = CreateFallbackListener();
+			}
+			return result;
+		}
+
+		public static IEventListener CreateFromConfig(string name)
+		{
+			ListenerConfigurationSection namedListenerConfig = null;
+			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;
+			if (config != null)
 			{
-				IEventListener result = null;
+				namedListenerConfig = config.Listeners[name];
+			}
+			if (namedListenerConfig == null) return null;
 
-				try
-				{
-					// Try to use the service locator - this is IoC implementation independent
-					IServiceLocator loc = ServiceLocator.Current;
-					if (loc != null)
-					{
-						result = loc.GetInstance<IEventListener>(Constants.DefaultEventListenerContainerKey);
-					}
-				}
-				catch (NullReferenceException)
-				{
-					/* no IoC - fall through */
-				}
-
-				if (result == null)
-				{ // Either there isn't a default event template defined in the IoC container
-					// or there isn't an IoC container in use... fall back to programmatic default.
-					result = InitializeDefaultFilePathListener();
-				}
-				return result;
+			if (namedListenerConfig.UseMulticast)
+			{
+				MulticastEventListener mee = new MulticastEventListener();
+				mee.Initialize(EventTemplateDB.CreateDefault(),
+					IPAddress.Parse(namedListenerConfig.AddressString),
+					namedListenerConfig.Port,
+					namedListenerConfig.UseParallelEmit);
+				return mee;
+			}
+			else
+			{
+				throw new NotImplementedException("TODO: Support UnicastEventListener");
+				//UnicastEventListener mee = new UnicastEventListener();
+				//mee.Initialize(EventTemplateDB.CreateDefault(),
+				//  IPAddress.Parse(namedListenerConfig.AddressString),
+				//  namedListenerConfig.Port,
+				//  namedListenerConfig.UseParallelEmit);
+				//return mee;
 			}
 		}
 
-		#endregion Properties
-
-		#region Methods
-
-		private static IEventListener InitializeDefaultFilePathListener()
+		public static IEventListener CreateNamedListener(string name)
 		{
-			// Lazy load both the lock and the pseudoSingleton because ideally we'd be
-			// using an IoC...
-			object lck = Util.NonBlockingLazyInitializeVolatile<Object>(ref __lock);
-
-			lock (lck)
+			IEventListener result = IoCAdapter.CreateFromIoC<IEventListener>(name);
+			if (result == null)
 			{
-				if (__pseudoSingleton == null || __pseudoSingleton.IsAlive == false)
-				{
-					MulticastEventListener listener = new MulticastEventListener();
-					listener.Initialize(EventTemplateDB.CreateDefault()
-						, Constants.DefaultMulticastAddress
-						, Constants.CDefaultMulticastPort
-						, true);
-					__pseudoSingleton = new WeakReference(listener);
-				}
+				result = CreateFromConfig(name);
 			}
-			return __pseudoSingleton.Target as IEventListener;
+			return result;
+		}
+
+		private static IEventListener CreateFallbackListener()
+		{
+			MulticastEventListener emitter = new MulticastEventListener();
+			emitter.Initialize(EventTemplateDB.CreateDefault()
+				, Constants.DefaultMulticastAddress
+				, Constants.CDefaultMulticastPort
+				, true);
+			return emitter;
 		}
 
 		#endregion Methods
