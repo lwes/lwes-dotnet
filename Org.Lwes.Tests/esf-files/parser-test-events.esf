@@ -1,0 +1,15 @@
+﻿# ESF file for testing the ESFParser
+#
+#
+EventContainingAttributesOfAllTypes
+{ 
+  uint16  UnsignedShortValue; # attribute of type uint16  -- 0x01
+  int16   SignedShortValue;   # attribute of type int16   -- 0x02
+  uint32  UnsignedIntValue;   # attribute of type uint32  -- 0x03
+  int32   SignedIntValue;     # attribute of type int32   -- 0x04
+  string  StringValue;        # attribute of type string  -- 0x05
+  ip_addr IPAddressValue;     # attribute of type ip_addr -- 0x06
+  int64   SignedLongValue;    # attribute of type int64   -- 0x07
+  uint64  UnsignedLongValue;  # attribute of type uint64  -- 0x08
+  boolean BooleanValue;       # attribute of type boolean -- 0x09
+}

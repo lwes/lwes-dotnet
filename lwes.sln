@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Org.Lwes", "Org.Lwes\Org.Lwes.csproj", "{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Org.Lwes.Tests", "Org.Lwes.Tests\Org.Lwes.Tests.csproj", "{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3E15B2B5-1A84-400A-BB14-3D51B7822C0E}"
+	ProjectSection(SolutionItems) = preProject
+		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
+		lwes.vsmdi = lwes.vsmdi
+		narrange.xml = narrange.xml
+		README.txt = README.txt
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lwes-test-emitter-console", "Lwes-test-emitter-console\Lwes-test-emitter-console.csproj", "{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lwes-test-listener-console", "Lwes-test-listener-console\Lwes-test-listener-console.csproj", "{F4152510-648C-47D3-9C1B-5EBFB935B74D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test Projects", "Test Projects", "{C8980C13-A258-4145-9767-7090BD05D182}"
+EndProject
+Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = lwes.vsmdi
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E} = {C8980C13-A258-4145-9767-7090BD05D182}
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D} = {C8980C13-A258-4145-9767-7090BD05D182}
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE} = {C8980C13-A258-4145-9767-7090BD05D182}
+	EndGlobalSection
+EndGlobal

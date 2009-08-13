@@ -1,0 +1,9 @@
+﻿#
+# ESF file containin events used by the tests
+#
+SimpleEvent
+{ 
+  string  Description; # description of the event
+  int32   ThreadID;    # identity of the thread that generated the event
+  boolean IsCritical;  # indicator whether the event is critical
+}

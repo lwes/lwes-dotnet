@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<TestRunConfiguration name="Local Test Run" id="434533c0-db15-4a7b-86d7-6378cfee3609" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2006">
+  <Description>This is a default test run configuration for a local test run.</Description>
+  <Deployment>
+    <DeploymentItem filename="Org.Lwes.Tests\esf-files\events.esf" />
+    <DeploymentItem filename="Org.Lwes.Tests\esf-files\parser-test-events.esf" />
+  </Deployment>
+  <TestTypeSpecific />
+</TestRunConfiguration>
