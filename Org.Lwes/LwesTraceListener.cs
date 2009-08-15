@@ -164,7 +164,7 @@
 		{
 			get
 			{
-				if (_parallel.HasValue)
+				if (!_parallel.HasValue)
 				{
 					string input = GetRawAttributeValue(SupportedAttributes_Parallel);
 					_parallel = (String.IsNullOrEmpty(input))
