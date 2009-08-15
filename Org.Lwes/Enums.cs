@@ -66,7 +66,13 @@
 		/// Indicates the token type is undefined
 		/// </summary>
 		UNDEFINED = (byte)0xff,
+		/// <summary>
+		/// Minimum value.
+		/// </summary>
 		MinValue = 0x01,
+		/// <summary>
+		/// Maximum defined value.
+		/// </summary>
 		MaxValue = 0x09
 	}
 

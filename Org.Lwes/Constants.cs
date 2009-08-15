@@ -18,19 +18,31 @@
 		/// Default encoding for character data.
 		/// </summary>
 		public static readonly Encoding DefaultEncoding = Encoding.UTF8;
+		/// <summary>
+		/// Name identifying the default event emitter in the configuration file.
+		/// </summary>
 		public static readonly string DefaultEventEmitterConfigName = "default";
 
 		/// <summary>
 		/// IoC container key for the default IEventEmitter instance.
 		/// </summary>
 		public static readonly string DefaultEventEmitterContainerKey = "eventEmitter";
+		/// <summary>
+		/// Name identifying the default event listener in the configuration file.
+		/// </summary>
 		public static readonly string DefaultEventListenerConfigName = "default";
 
 		/// <summary>
 		/// IoC container key for the default IEventListener instance.
 		/// </summary>
 		public static readonly string DefaultEventListenerContainerKey = "eventListener";
+		/// <summary>
+		/// Name identifying the default event template DB in the configuration file.
+		/// </summary>
 		public static readonly string DefaultEventTemplateDBConfigName = "default";
+		/// <summary>
+		/// IoC container key for the default IEventTemplateDB instance.
+		/// </summary>
 		public static readonly string DefaultEventTemplateDBContainerKey = "templateDB";
 
 		/// <summary>
@@ -57,6 +69,9 @@
 		/// Default length of buffers.
 		/// </summary>
 		public const int CAllocationBufferLength = 65535;
+		/// <summary>
+		/// Default multicast address (as a string)
+		/// </summary>
 		public const string CDefaultMulticastAddressString = "224.0.0.69";
 
 		/// <summary>

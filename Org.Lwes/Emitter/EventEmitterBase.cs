@@ -230,6 +230,9 @@
 		/// <param name="enc">encoding the emitter should use for character data.</param>
 		/// <param name="performValidation">whether the emitter validates emitted messages</param>
 		/// <param name="db">a template DB to use when creating events</param>
+		/// <param name="endpoint">An IP endpoint where events will be emitted</param>
+		/// <param name="parallel">indicates whether the emitter will use the parallel strategy</param>
+		/// <param name="finishSocket">callback method used to finish setup of the socket</param>
 		protected void Initialize(SupportedEncoding enc, bool performValidation, IEventTemplateDB db
 			, IPEndPoint endpoint, bool parallel, Action<Socket, IPEndPoint> finishSocket)
 		{

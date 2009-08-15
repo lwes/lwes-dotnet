@@ -18,10 +18,17 @@
 
 		#region Methods
 
-		public static Event GenerateRandomEvent(string en, int maxAttributeCount)
+		/// <summary>
+		/// Generates a random event suitable for use during testing. The event's attributes
+		/// are also generated randomly and populated with random data.
+		/// </summary>
+		/// <param name="name">the new event's name</param>
+		/// <param name="maxAttributeCount">maximum number of attributes in the random event.</param>
+		/// <returns>a new populated event.</returns>
+		public static Event GenerateRandomEvent(string name, int maxAttributeCount)
 		{
 			int attributesToGenerate = _rand.Next(1, maxAttributeCount);
-			Event original = new Event(en)
+			Event original = new Event(name)
 				.SetValue("ID", Guid.NewGuid().ToString("B"));
 			for (int i = 1; i < attributesToGenerate; i++)
 			{

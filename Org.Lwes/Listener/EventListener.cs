@@ -43,6 +43,14 @@
 			return result;
 		}
 
+		/// <summary>
+		/// Creates an listener from the configuration.
+		/// </summary>
+		/// <param name="name">name of the instance to create</param>
+		/// <returns>the named instance if it exists within the configuration;
+		/// otherwise null</returns>
+		/// <remarks>Note that two subsequent calls to this method will return
+		/// two separate instances of the configured instance.</remarks>
 		public static IEventListener CreateFromConfig(string name)
 		{
 			ListenerConfigurationSection namedListenerConfig = null;
@@ -74,6 +82,13 @@
 			}
 		}
 
+		/// <summary>
+		/// Creates the named instance. If an IoC container is in use the IoC
+		/// container is consulted for the named instance first.
+		/// </summary>
+		/// <param name="name">name of the instance to create</param>
+		/// <returns>the named instance if it exists within the IoC container
+		/// or the configuration; otherwise null</returns>
 		public static IEventListener CreateNamedListener(string name)
 		{
 			IEventListener result = IoCAdapter.CreateFromIoC<IEventListener>(name);

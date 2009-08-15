@@ -16,7 +16,6 @@
 
 		bool _done;
 		Event _receivedEvent;
-		Event _sourceEvent;
 
 		#endregion Fields
 

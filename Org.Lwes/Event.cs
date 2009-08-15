@@ -443,6 +443,11 @@
 			return s.Append("}}").ToString();
 		}
 
+		/// <summary>
+		/// Converts the event to a string.
+		/// </summary>
+		/// <param name="humanReadable">Whether the output should be formatted for human readability</param>
+		/// <returns>string contianing the event</returns>
 		public string ToString(bool humanReadable)
 		{
 			if (!humanReadable) return ToString();

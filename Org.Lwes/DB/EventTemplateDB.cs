@@ -42,6 +42,14 @@
 			return result;
 		}
 
+		/// <summary>
+		/// Creates an event template DB from the configuration.
+		/// </summary>
+		/// <param name="name">name of the instance to create</param>
+		/// <returns>the named instance if it exists within the configuration;
+		/// otherwise null</returns>
+		/// <remarks>Note that two subsequent calls to this method will return
+		/// two separate instances of the configured instance.</remarks>
 		public static IEventTemplateDB CreateFromConfig(string name)
 		{
 			TemplateDBConfigurationSection namedTemplateDBConfig = null;
@@ -57,6 +65,13 @@
 			return db;
 		}
 
+		/// <summary>
+		/// Creates the named instance. If an IoC container is in use the IoC
+		/// container is consulted for the named instance first.
+		/// </summary>
+		/// <param name="name">name of the instance to create</param>
+		/// <returns>the named instance if it exists either within the IoC container
+		/// or the configuration; otherwise null</returns>
 		public static IEventTemplateDB CreateNamedTemplateDB(string name)
 		{
 			IEventTemplateDB result = IoCAdapter.CreateFromIoC<IEventTemplateDB>(name);

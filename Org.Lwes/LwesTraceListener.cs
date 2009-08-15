@@ -8,6 +8,10 @@
 	using Org.Lwes.DB;
 	using Org.Lwes.Emitter;
 
+	/// <summary>
+	/// TraceListener implementation that echoes trace events to the 
+	/// light weight event system.
+	/// </summary>
 	public class LwesTraceListener : TraceListener
 	{
 		#region Fields
@@ -29,25 +33,33 @@
 		private static readonly string SupportedAttributes_BindEmitterByName = "BindEmitterByName";
 		private static readonly string SupportedAttributes_EmitterType = "EmitterType";
 		private static readonly string SupportedAttributes_MutlicastTimeToLive = "MutlicastTimeToLive";
-		private static readonly string SupportedAttributes_ParallelStrategy = "ParallelStrategy";
 		private static readonly string SupportedAttributes_Port = "Port";
+		private static readonly string SupportedAttributes_Parallel = "Parallel";
 
 		IEventEmitter _emitter;
 		string _emitterByName;
 		string _emitterType;
 		IPAddress _ipAddress;
-		int _multicastTtl;
-		int _port;
+		int? _multicastTtl;
+		int? _port;
+		bool? _parallel;
 
 		#endregion Fields
 
 		#region Constructors
 
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
 		public LwesTraceListener()
 			: base()
 		{
 		}
 
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
+		/// <param name="listenerName"></param>
 		public LwesTraceListener(string listenerName)
 			: base(listenerName)
 		{
@@ -57,6 +69,9 @@
 
 		#region Properties
 
+		/// <summary>
+		/// The IPAddress used by the trace listener.
+		/// </summary>
 		public IPAddress Address
 		{
 			get
@@ -72,6 +87,9 @@
 			}
 		}
 
+		/// <summary>
+		/// The name of a configured emitter to use.
+		/// </summary>
 		public string BindEmitterByName
 		{
 			get
@@ -81,6 +99,9 @@
 			}
 		}
 
+		/// <summary>
+		/// The emitter type. { unicast | multicast }
+		/// </summary>
 		public string EmitterType
 		{
 			get
@@ -90,41 +111,70 @@
 			}
 		}
 
+		/// <summary>
+		/// Indicates whether the listener is threadsafe (it is).
+		/// </summary>
 		public override bool IsThreadSafe
 		{
 			get { return true; }
 		}
 
+		/// <summary>
+		/// Indicates the multicast time-to-live if underlying emitter
+		/// is using multicast.
+		/// </summary>
 		public int MulticastTimeToLive
 		{
 			get
 			{
-				if (_multicastTtl == default(int))
+				if (!_multicastTtl.HasValue)
 				{
 					string input = GetRawAttributeValue(SupportedAttributes_MutlicastTimeToLive);
 					_multicastTtl = (String.IsNullOrEmpty(input))
 						? default(int)
 						: int.Parse(input);
 				}
-				return _multicastTtl;
+				return _multicastTtl.Value;
 			}
 		}
 
+		/// <summary>
+		/// Indicates the port the underlying emitter will use.
+		/// </summary>
 		public int Port
 		{
 			get
 			{
-				if (_port == default(int))
+				if (!_port.HasValue)
 				{
 					string input = GetRawAttributeValue(SupportedAttributes_Port);
 					_port = (String.IsNullOrEmpty(input))
 						? default(int)
 						: int.Parse(input);
 				}
-				return _port;
+				return _port.Value;
 			}
 		}
 
+		/// <summary>
+		/// Indicates whether the underlying emitter will use a parallel 
+		/// strategy when emitting.
+		/// </summary>
+		public bool Parallel
+		{
+			get
+			{
+				if (_parallel.HasValue)
+				{
+					string input = GetRawAttributeValue(SupportedAttributes_Parallel);
+					_parallel = (String.IsNullOrEmpty(input))
+						? default(bool)
+						: bool.Parse(input);
+				}
+				return _parallel.Value;
+			}
+		}
+		
 		IEventEmitter Emitter
 		{
 			get
@@ -146,7 +196,7 @@
 								MulticastEventEmitter emitter = new MulticastEventEmitter();
 								IPAddress addy = Address ?? Constants.DefaultMulticastAddress;
 								int port = (Port == 0) ? Constants.CDefaultMulticastPort : Port;
-								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;
+								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;								
 								emitter.Initialize(SupportedEncoding.Default,
 			#if DEBUG
 			 true,
@@ -157,7 +207,7 @@
 									addy,
 									port,
 									ttl,
-									true);
+									Parallel);
 								return emitter;
 							}
 						}
@@ -169,11 +219,26 @@
 
 		#region Methods
 
+		/// <summary>
+		/// Closes the trace listener.
+		/// </summary>
 		public override void Close()
 		{
 			base.Close();
+			Util.Dispose(ref _emitter);
 		}
 
+		/// <summary>
+		/// Writes trace information, a data object and event information to the listener specific output.
+		/// </summary>
+		/// <param name="eventCache">A System.Diagnostics.TraceEventCache object that contains the current process
+		/// ID, thread ID, and stack trace information.</param>
+		/// <param name="source">A name used to identify the output, typically the name of the application
+		/// that generated the trace event.</param>
+		/// <param name="eventType">One of the System.Diagnostics.TraceEventType values specifying the type of
+		/// event that has caused the trace.</param>
+		/// <param name="id">A numeric identifier for the event.</param>
+		/// <param name="data">The trace data to emit.</param>
 		public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, object data)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -193,6 +258,18 @@
 			_emitter.Emit(ev);
 		}
 
+
+		/// <summary>
+		/// Writes trace information, a data object and event information to the listener specific output.
+		/// </summary>
+		/// <param name="eventCache">A System.Diagnostics.TraceEventCache object that contains the current process
+		/// ID, thread ID, and stack trace information.</param>
+		/// <param name="source">A name used to identify the output, typically the name of the application
+		/// that generated the trace event.</param>
+		/// <param name="eventType">One of the System.Diagnostics.TraceEventType values specifying the type of
+		/// event that has caused the trace.</param>
+		/// <param name="id">A numeric identifier for the event.</param>
+		/// <param name="data">An array of objects to emit as data.</param>
 		public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, params object[] data)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -215,6 +292,16 @@
 			_emitter.Emit(ev);
 		}
 
+		/// <summary>
+		/// Writes trace information, a data object and event information to the listener specific output.
+		/// </summary>
+		/// <param name="eventCache">A System.Diagnostics.TraceEventCache object that contains the current process
+		/// ID, thread ID, and stack trace information.</param>
+		/// <param name="source">A name used to identify the output, typically the name of the application
+		/// that generated the trace event.</param>
+		/// <param name="eventType">One of the System.Diagnostics.TraceEventType values specifying the type of
+		/// event that has caused the trace.</param>
+		/// <param name="id">A numeric identifier for the event.</param>
 		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -233,6 +320,19 @@
 			_emitter.Emit(ev);
 		}
 
+		/// <summary>
+		/// Writes trace information, a data object and event information to the listener specific output.
+		/// </summary>
+		/// <param name="eventCache">A System.Diagnostics.TraceEventCache object that contains the current process
+		/// ID, thread ID, and stack trace information.</param>
+		/// <param name="source">A name used to identify the output, typically the name of the application
+		/// that generated the trace event.</param>
+		/// <param name="eventType">One of the System.Diagnostics.TraceEventType values specifying the type of
+		/// event that has caused the trace.</param>
+		/// <param name="id">A numeric identifier for the event.</param>
+		/// <param name="format">A format string that contains zero or more format items, which correspond
+		/// to objects in the args array.</param>
+		/// <param name="args">An object array containing zero or more objects to format.</param>
 		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -252,6 +352,17 @@
 			_emitter.Emit(ev);
 		}
 
+		/// <summary>
+		/// Writes trace information, a data object and event information to the listener specific output.
+		/// </summary>
+		/// <param name="eventCache">A System.Diagnostics.TraceEventCache object that contains the current process
+		/// ID, thread ID, and stack trace information.</param>
+		/// <param name="source">A name used to identify the output, typically the name of the application
+		/// that generated the trace event.</param>
+		/// <param name="eventType">One of the System.Diagnostics.TraceEventType values specifying the type of
+		/// event that has caused the trace.</param>
+		/// <param name="id">A numeric identifier for the event.</param>
+		/// <param name="message">A message to write.</param>
 		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -271,6 +382,17 @@
 			_emitter.Emit(ev);
 		}
 
+		/// <summary>
+		/// Writes trace information, a message, a related activity identity and event
+		/// information to the listener specific output.
+		/// </summary>
+		/// <param name="eventCache">A System.Diagnostics.TraceEventCache object that contains the current process
+		/// ID, thread ID, and stack trace information.</param>
+		/// <param name="source">A name used to identify the output, typically the name of the application
+		/// that generated the trace event.</param>
+		/// <param name="id">A numeric identifier for the event.</param>
+		/// <param name="message">A message to write.</param>
+		/// <param name="relatedActivityId">A System.Guid object identifying a related activity.</param>
 		public override void TraceTransfer(TraceEventCache eventCache, string source, int id, string message, Guid relatedActivityId)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -285,6 +407,10 @@
 			_emitter.Emit(ev);
 		}
 
+		/// <summary>
+		/// Writes the specified message to the listener.
+		/// </summary>
+		/// <param name="message">A message to write.</param>
 		public override void Write(string message)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage)
@@ -292,17 +418,29 @@
 			_emitter.Emit(ev);
 		}
 
+		/// <summary>
+		/// Writes the specified message to the listener.
+		/// </summary>
+		/// <param name="message">A message to write.</param>
 		public override void WriteLine(string message)
 		{
 			Write(String.Concat(message, Environment.NewLine));
 		}
 
+		/// <summary>
+		/// Disposes of the listener and the underlying emitter.
+		/// </summary>
+		/// <param name="disposing">Indicates whether the listener is being disposed.</param>
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
 			Util.Dispose(ref _emitter);
 		}
 
+		/// <summary>
+		/// Gets the custom attributes supported by the trace listener.
+		/// </summary>
+		/// <returns>A string array naming the custom attributes supported by the trace listener.</returns>
 		protected override string[] GetSupportedAttributes()
 		{
 			return new string[]
@@ -312,7 +450,7 @@
 				SupportedAttributes_Address,
 				SupportedAttributes_Port,
 				SupportedAttributes_MutlicastTimeToLive,
-				SupportedAttributes_ParallelStrategy
+				SupportedAttributes_Parallel
 			};
 		}
 

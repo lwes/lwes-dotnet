@@ -3,6 +3,10 @@
 	using System;
 	using System.Threading;
 
+	/// <summary>
+	/// Utility structure for performing and tracking threadsafe state transitions.
+	/// </summary>
+	/// <typeparam name="E">State type E (should be an enum)</typeparam>
 	public struct Status<E>
 	{
 		#region Fields
@@ -13,6 +17,10 @@
 
 		#region Constructors
 
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
+		/// <param name="initialialState">Initial state</param>
 		public Status(E initialialState)
 		{
 			_status = Convert.ToInt32(initialialState);
@@ -22,7 +30,10 @@
 
 		#region Properties
 
-		public E State
+		/// <summary>
+		/// Accesses the current state.
+		/// </summary>
+		public E CurrentState
 		{
 			get { return (E)Enum.ToObject(typeof(E), Thread.VolatileRead(ref _status)); }
 		}

@@ -319,12 +319,6 @@
 		{
 			#region Fields
 
-			/// <summary>
-			/// Time (milliseconds) that a thread will sleep/pulse
-			/// while waiting for a buffer to become available.
-			/// </summary>
-			static readonly int AcquireBufferYieldDelayMS = 10;
-
 			EndPoint _anyEP;
 			Action<Event> _callback;
 			IEventTemplateDB _db;
@@ -355,13 +349,12 @@
 			}
 
 			/// <summary>
-			/// Starts the listener in parallel.
+			/// Starts the listener.
 			/// </summary>
-			/// <param name="db"></param>
-			/// <param name="bufferQueueDepth"></param>
-			/// <param name="listenEP"></param>
-			/// <param name="finishSocket"></param>
-			/// <param name="callback"></param>
+			/// <param name="db">an event template DB</param>
+			/// <param name="listenEP">the listening endpoint</param>
+			/// <param name="finishSocket">a callback method that is called upon to finish the listening socket</param>
+			/// <param name="callback">a callback method to receive events</param>
 			public void Start(IEventTemplateDB db
 				, IPEndPoint listenEP
 				, Action<Socket, IPEndPoint> finishSocket

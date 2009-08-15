@@ -6,7 +6,12 @@
 
 	using Org.Lwes.Config;
 
-	public static class Buffers
+	/// <summary>
+	/// Utility for tracking the amount of memory used
+	/// in event buffering. This class imposes the limit
+	/// set by the configuration lwes\maximumBufferingMemory
+	/// </summary>
+	internal static class Buffers
 	{
 		#region Fields
 
@@ -25,7 +30,7 @@
 			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;
 			if (config != null)
 			{
-				__maxMemory = config.MaximumBufferingMemory;
+				__maxMemory = config.MaximumBufferMemory;
 				__bufferAllocationLength = config.BufferAllocationLength;
 			}
 		}
