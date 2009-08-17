@@ -38,6 +38,20 @@
 			get { return (E)Enum.ToObject(typeof(E), Thread.VolatileRead(ref _status)); }
 		}
 
+		/// <summary>
+		/// Perfroms a spinwait until the current state equals the target state.
+		/// </summary>
+		/// <param name="targetState">the target state</param>
+		/// <param name="loopAction">An action to perform inside the spin cycle</param>
+		public void SpinWaitForState(E targetState, Action loopAction)
+		{
+			int state = Convert.ToInt32(targetState);
+			while (Thread.VolatileRead(ref _status) != state)
+			{
+				loopAction();
+			}
+		}
+
 		#endregion Properties
 
 		#region Methods
