@@ -265,11 +265,24 @@
 		/// <summary>
 		/// Serializes an LWES event to a byte array.
 		/// </summary>
-		/// <param name="ev"></param>
-		/// <returns></returns>
+		/// <param name="ev">an event to serialize</param>
+		/// <returns>a byte array containing the event's serialized bytes</returns>
 		public static byte[] Serialize(Event ev)
 		{
 			byte[] buffer = new byte[ev.CalculateEncodedByteCount()];
+			ev.BinaryEncode(buffer, 0);
+			return buffer;
+		}
+
+		/// <summary>
+		/// Serializes an LWES event to a byte array taken from the MemoryBuffer
+		/// class so that memory limits are enforced.
+		/// </summary>
+		/// <param name="ev">an event to serialize</param>
+		/// <returns>a byte array containing the event's serialized bytes</returns>
+		public static byte[] SerializeToMemoryBuffer(Event ev)
+		{			
+			byte[] buffer = Buffers.AcquireBuffer(ev.CalculateEncodedByteCount(), null);
 			ev.BinaryEncode(buffer, 0);
 			return buffer;
 		}

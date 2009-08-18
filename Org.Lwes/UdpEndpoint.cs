@@ -153,6 +153,22 @@
 			}
 		}
 
+		public void ContinueReceiveFromAsync(EndPointOpState state, byte[] buffer)
+		{
+			state.SocketArgs.SetBuffer(buffer, 0, buffer.Length);
+			if (!_socket.ReceiveFromAsync(state.SocketArgs))
+			{
+				// If the callback reuses the args (indicated by return value of true)
+				// then we return without queuing the args.
+				if (state.Callback != null
+						&& state.Callback(new EndPointOpState(state.SocketArgs
+							, state.Callback
+							, state.Handback
+							)))
+					return;
+			}
+		}
+
 		public void ContinueSendToAsync(EndPointOpState state, int offset, int count)
 		{
 			state.SocketArgs.SetBuffer(state.SocketArgs.Buffer, offset, count);

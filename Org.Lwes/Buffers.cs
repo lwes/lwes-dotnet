@@ -19,6 +19,7 @@
 		static readonly int __maxMemory = Constants.CMaximumBufferingMemory;
 
 		static int __memoryInUse = 0;
+		static int __waitCount = 0;
 
 		#endregion Fields
 
@@ -48,6 +49,11 @@
 		/// becomes <em>true</em>; otherwise <em>null</em></returns>
 		internal static byte[] AcquireBuffer(Func<bool> cancelSignal)
 		{
+			return AcquireBuffer(__bufferAllocationLength, cancelSignal);
+		}
+
+		internal static byte[] AcquireBuffer(int bufferLength, Func<bool> cancelSignal)
+		{
 			//
 			// This strategy equates to a spinwait.
 			// It may be worthwhile to introduce a sleep after some number of failures,
@@ -57,14 +63,18 @@
 			int init, fin = Thread.VolatileRead(ref __memoryInUse);
 			while (true)
 			{
-				if (cancelSignal != null && cancelSignal())	return null;
+				if (cancelSignal != null && cancelSignal()) return null;
 
 				init = fin;
-				fin = Interlocked.CompareExchange(ref __memoryInUse, init + __bufferAllocationLength, init);
-				if (fin == init)
+				if (init < (__maxMemory - bufferLength))
 				{
-					return new byte[__bufferAllocationLength];
+					fin = Interlocked.CompareExchange(ref __memoryInUse, init + bufferLength, init);
+					if (fin == init)
+					{
+						return new byte[bufferLength];
+					}
 				}
+				Interlocked.Increment(ref __waitCount);
 			}
 		}
 

@@ -18,6 +18,7 @@
 		/// Property name for the tempate DB's name.
 		/// </summary>
 		public const string PropertyName_name = "name";
+
 		/// <summary>
 		/// Property name for the path.
 		/// </summary>

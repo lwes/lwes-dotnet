@@ -33,16 +33,16 @@
 		private static readonly string SupportedAttributes_BindEmitterByName = "BindEmitterByName";
 		private static readonly string SupportedAttributes_EmitterType = "EmitterType";
 		private static readonly string SupportedAttributes_MutlicastTimeToLive = "MutlicastTimeToLive";
-		private static readonly string SupportedAttributes_Port = "Port";
 		private static readonly string SupportedAttributes_Parallel = "Parallel";
+		private static readonly string SupportedAttributes_Port = "Port";
 
 		IEventEmitter _emitter;
 		string _emitterByName;
 		string _emitterType;
 		IPAddress _ipAddress;
 		int? _multicastTtl;
-		int? _port;
 		bool? _parallel;
+		int? _port;
 
 		#endregion Fields
 
@@ -139,24 +139,6 @@
 		}
 
 		/// <summary>
-		/// Indicates the port the underlying emitter will use.
-		/// </summary>
-		public int Port
-		{
-			get
-			{
-				if (!_port.HasValue)
-				{
-					string input = GetRawAttributeValue(SupportedAttributes_Port);
-					_port = (String.IsNullOrEmpty(input))
-						? default(int)
-						: int.Parse(input);
-				}
-				return _port.Value;
-			}
-		}
-
-		/// <summary>
 		/// Indicates whether the underlying emitter will use a parallel 
 		/// strategy when emitting.
 		/// </summary>
@@ -174,7 +156,25 @@
 				return _parallel.Value;
 			}
 		}
-		
+
+		/// <summary>
+		/// Indicates the port the underlying emitter will use.
+		/// </summary>
+		public int Port
+		{
+			get
+			{
+				if (!_port.HasValue)
+				{
+					string input = GetRawAttributeValue(SupportedAttributes_Port);
+					_port = (String.IsNullOrEmpty(input))
+						? default(int)
+						: int.Parse(input);
+				}
+				return _port.Value;
+			}
+		}
+
 		IEventEmitter Emitter
 		{
 			get
@@ -196,7 +196,7 @@
 								MulticastEventEmitter emitter = new MulticastEventEmitter();
 								IPAddress addy = Address ?? Constants.DefaultMulticastAddress;
 								int port = (Port == 0) ? Constants.CDefaultMulticastPort : Port;
-								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;								
+								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;
 								emitter.Initialize(SupportedEncoding.Default,
 			#if DEBUG
 			 true,
@@ -257,7 +257,6 @@
 				.SetValue(AttributeName_Data, Convert.ToString(data));
 			_emitter.Emit(ev);
 		}
-
 
 		/// <summary>
 		/// Writes trace information, a data object and event information to the listener specific output.

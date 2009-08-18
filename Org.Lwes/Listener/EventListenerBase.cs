@@ -15,6 +15,8 @@
 	{
 		#region Fields
 
+		const int CDisposeBackgroundThreadWaitTimeMS = 200;
+
 		IEventTemplateDB _db;
 		IPEndPoint _endpoint;
 		IListener _listener;
@@ -39,9 +41,11 @@
 		{
 			Unknown = 0,
 			Active = 1,
-			StopSignaled = 2,
-			Stopped = 3,
-			Stopping = 4,
+			Suspending = 2,
+			Suspended = 3,
+			StopSignaled = 4,
+			Stopping = 5,
+			Stopped = 6,
 		}
 
 		#endregion Enumerations
@@ -130,7 +134,7 @@
 			_endpoint = endpoint;
 			IListener listener = (parallel)
 				? (IListener)new ParallelListener()
-				: (IListener)new MultiThreadedListener();
+				: (IListener)new BackgroundThreadListener();
 
 			listener.Start(db, endpoint, finishSocket, (e) =>
 					{
@@ -144,7 +148,12 @@
 
 		#region Nested Types
 
-		class MultiThreadedListener : IListener
+		/// <remarks>
+		/// Uses background threads to receive events from LWES. This class uses two
+		/// threads, one to listen and deserialize the events and another to perform
+		/// the notifications.
+		/// </remarks>
+		class BackgroundThreadListener : IListener
 		{
 			#region Fields
 
@@ -154,14 +163,17 @@
 			IEventTemplateDB _db;
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			UdpEndpoint _listenEP;
-			int _notifierState;
-			int _recieverState;
+			Thread _notifier;
+			Status<ListenerState> _notifierState;
+			Object _notifierWaitObject;
+			Thread _reciever;
+			Status<ListenerState> _recieverState;
 
 			#endregion Fields
 
 			#region Constructors
 
-			~MultiThreadedListener()
+			~BackgroundThreadListener()
 			{
 				Dispose(false);
 			}
@@ -199,49 +211,69 @@
 					: new IPEndPoint(IPAddress.Any, listenEP.Port);
 				_buffer = Buffers.AcquireBuffer(null);
 				_listenEP = new UdpEndpoint(listenEP).Initialize(finishSocket);
-				ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Receiver));
+				// Start a dedicated background thread to handle the receiving...
+				_reciever = new Thread(Background_Receiver);
+				_reciever.IsBackground = true;
+				_reciever.Start();
+
+				// Start a dedicated background thread to perform event notification...
+				_notifierWaitObject = new Object();
+				_notifier = new Thread(Background_Notifier);
+				_notifier.IsBackground = true;
+				_notifier.Start();
 			}
 
 			internal void Stop()
 			{
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.StopSignaled, (int)ListenerState.Active) == (int)ListenerState.Active)
+				if (_recieverState.TrySetState(ListenerState.StopSignaled, ListenerState.Active))
 				{
+					// Close the listener, this will cause the receiver thread to wakeup
+					// if it is blocked waiting for IO on the socket.
 					Util.Dispose(ref _listenEP);
-					while (Thread.VolatileRead(ref _recieverState) != (int)ListenerState.Stopped)
-					{
-						Thread.Sleep(20);
-					}
+					_reciever.Join();
 				}
 			}
 
 			private void Background_Notifier(object unused_state)
 			{
-				Thread.VolatileWrite(ref _notifierState, (int)ListenerState.Active);
-				Event ev;
-				while (_eventQueue.Dequeue(out ev))
+				_notifierState.SetState(ListenerState.Active);
+				while (_notifierState.CurrentState < ListenerState.StopSignaled)
 				{
-					_callback(ev);
-				}
-				Thread.VolatileWrite(ref _notifierState, (int)ListenerState.Stopping);
-				// Catch queued input during race condition -
-				// With this strategy it is possible for two threads
-				// to be temporarily competing to drain the queue,
-				// but as the queue is lock-free and thread-safe
-				// the competition is mostly benign and short lived.
-				while (_eventQueue.Dequeue(out ev))
-				{
+					Event ev;
+					if (!_eventQueue.Dequeue(out ev))
+					{
+						lock (_notifierWaitObject)
+						{ // double-check that the queue is empty
+							// this strategy catches the race condition when the
+							// reciever queue's an event while we're acquiring the lock.
+							_notifierState.SetState(ListenerState.Suspending);
+							if (!_eventQueue.Dequeue(out ev))
+							{
+								_notifierState.SetState(ListenerState.Suspended);
+								Monitor.Wait(_notifierWaitObject);
+							}
+							// If the stop signal arrived during a wait then bail out...
+							if (_notifierState.CurrentState == ListenerState.StopSignaled)
+							{
+								_notifierState.SetState(ListenerState.Stopped);
+								break;
+							}
+							// otherwise we're active again
+							_notifierState.SetState(ListenerState.Active);
+						}
+					}
 					_callback(ev);
 				}
 			}
 
 			private void Background_Receiver(object unused_state)
 			{
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.Active, (int)ListenerState.Unknown) == (int)ListenerState.Unknown)
+				if (_recieverState.TrySetState(ListenerState.Active, ListenerState.Unknown))
 				{
 					try
 					{
 						// Continue until signaled to stop...
-						while (Thread.VolatileRead(ref _recieverState) == (int)ListenerState.Active)
+						while (_recieverState.CurrentState == ListenerState.Active)
 						{
 							EndPoint rcep = _anyEP;
 							// Perform a blocking receive...
@@ -258,43 +290,25 @@
 						if (se.ErrorCode != 10004)
 							throw se;
 					}
-					if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.Stopping, (int)ListenerState.StopSignaled) == (int)ListenerState.StopSignaled)
+					if (_recieverState.TrySetState(ListenerState.Stopping, ListenerState.StopSignaled))
 					{
-						Thread.VolatileWrite(ref _recieverState, (int)ListenerState.Stopped);
+						// Cascade the stop signal to the notifier and wait for it to exit...
+						_notifierState.SetState(ListenerState.StopSignaled);
+						_notifier.Join();
 					}
 				}
-			}
-
-			private bool CheckForStopSignal()
-			{
-				// Check for stop signal
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.Stopping, (int)ListenerState.StopSignaled) == (int)ListenerState.StopSignaled)
-				{
-					// When signaled, stop rescheduling.
-					Thread.VolatileWrite(ref _recieverState, (int)ListenerState.Stopped);
-					return true;
-				}
-				return false;
 			}
 
 			private void Dispose(bool disposing)
 			{
 				// Signal background threads...
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.StopSignaled, (int)ListenerState.Active) == (int)ListenerState.Active)
-				{
-					Thread.Sleep(0);
-					Util.Dispose(ref _listenEP);
-					Buffers.ReleaseBuffer(_buffer);
-					_buffer = null;
-				}
-			}
-
-			private void EnsureNotifierIsActive()
-			{
-				if (Thread.VolatileRead(ref _notifierState) != (int)ListenerState.Active)
-				{
-					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Notifier));
-				}
+				_recieverState.TrySetStateWithAction(ListenerState.StopSignaled, ListenerState.Active, () =>
+					{
+						Util.Dispose(ref _listenEP);
+						_reciever.Join(CDisposeBackgroundThreadWaitTimeMS);
+						Buffers.ReleaseBuffer(_buffer);
+						_buffer = null;
+					});
 			}
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep
@@ -309,12 +323,31 @@
 					.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
 
 				_eventQueue.Enqueue(ev);
-				EnsureNotifierIsActive();
+
+				if (_notifierState.CurrentState > ListenerState.Active)
+				{
+					// notifier thread is either suspending or suspended;
+					// wake it up...
+					lock (_notifierWaitObject)
+					{
+						Monitor.Pulse(_notifierWaitObject);
+					}
+				}
 			}
 
 			#endregion Methods
 		}
 
+		/// <remarks>
+		/// Uses the threadpool and overlapped IO on the recieving socket. This listener
+		/// will consume between 0 and 3 threads from the threadpool, depending on which
+		/// jobs are active. The jobs may consist of the following:
+		/// <ul>
+		/// <li>Receiver - invoked by the socket on a threadpool thread when input is received</li>
+		/// <li>Deserializer - scheduled for a threadpool thread and runs as long as buffers are in the receive queue</li>
+		/// <li>Notifier - scheduled for a threadpool thread and runs as long as Events are in the notification queue</li>
+		/// </ul>
+		/// </remarks>
 		class ParallelListener : IListener
 		{
 			#region Fields
@@ -322,12 +355,12 @@
 			EndPoint _anyEP;
 			Action<Event> _callback;
 			IEventTemplateDB _db;
-			int _deserializerState;
+			Status<ListenerState> _deserializerState = new Status<ListenerState>(ListenerState.Suspended);
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			UdpEndpoint _listenEP;
-			int _notifierState;
-			SimpleLockFreeQueue<EndPointOpState> _receiveQueue;
-			int _recieverState;
+			Status<ListenerState> _notifierState = new Status<ListenerState>(ListenerState.Suspended);
+			SimpleLockFreeQueue<ReceiveCapture> _receiveQueue;
+			Status<ListenerState> _recieverState;
 
 			#endregion Fields
 
@@ -366,7 +399,7 @@
 					? new IPEndPoint(IPAddress.IPv6Any, 0)
 					: new IPEndPoint(IPAddress.Any, 0);
 
-				_receiveQueue = new SimpleLockFreeQueue<EndPointOpState>();
+				_receiveQueue = new SimpleLockFreeQueue<ReceiveCapture>();
 
 				_listenEP = new UdpEndpoint(listenEP).Initialize(finishSocket);
 				ParallelReceiver();
@@ -374,87 +407,139 @@
 
 			internal void Stop()
 			{
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.StopSignaled, (int)ListenerState.Active) == (int)ListenerState.Active)
+				_recieverState.TrySetStateWithAction(ListenerState.StopSignaled, ListenerState.Active, () =>
 				{
 					Util.Dispose(ref _listenEP);
-					while (Thread.VolatileRead(ref _recieverState) != (int)ListenerState.Stopped)
-					{
-						Thread.Sleep(20);
-					}
-				}
+
+					_recieverState.SpinWaitForState(ListenerState.Stopped, () => Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS));
+				});
 			}
 
 			private void Background_Deserializer(object unused_state)
 			{
 				// Called within the thread pool:
 				//
-				// Drains the recieve queue of opstate records and
+				// Drains the recieve queue of capture records and
 				// transforms those records into Event objects by deserialization.
 				//
 				//
-				Thread.VolatileWrite(ref _deserializerState, (int)ListenerState.Active);
-				EndPointOpState input;
-				while (_receiveQueue.Dequeue(out input))
+				if (_deserializerState.SetStateIfLessThan(ListenerState.Active, ListenerState.StopSignaled))
 				{
-					PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
-				}
-				Thread.VolatileWrite(ref _deserializerState, (int)ListenerState.Stopping);
-				// Catch queued input during race condition -
-				// With this strategy it is possible for two threads
-				// to be temporarily competing to drain the queue,
-				// but as the queue is lock-free and thread-safe
-				// the competition is mostly benign and short lived.
-				while (_receiveQueue.Dequeue(out input))
-				{
-					PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
+					ReceiveCapture input;
+					while (_receiveQueue.Dequeue(out input))
+					{
+						PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
+					}
+					_deserializerState.TrySetStateWithAction(ListenerState.Suspending, ListenerState.Active, () =>
+						{
+							// We may temporarily have a thread active and a thread suspending
+							// this will be temporary and together they will drain the queue
+							while (_receiveQueue.Dequeue(out input))
+							{
+								PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
+							}
+							_deserializerState.TrySetState(ListenerState.Suspended, ListenerState.Suspending);
+						});
 				}
 			}
 
 			private void Background_Notifier(object unused_state)
 			{
-				Thread.VolatileWrite(ref _notifierState, (int)ListenerState.Active);
-				Event ev;
-				while (_eventQueue.Dequeue(out ev))
+				//
+				// Drains the event queue and performs notification
+				//
+				if (_notifierState.SetStateIfLessThan(ListenerState.Active, ListenerState.StopSignaled))
 				{
-					_callback(ev);
-				}
-				Thread.VolatileWrite(ref _notifierState, (int)ListenerState.Stopping);
-				// Catch queued input during race condition -
-				// With this strategy it is possible for two threads
-				// to be temporarily competing to drain the queue,
-				// but as the queue is lock-free and thread-safe
-				// the competition is mostly benign and short lived.
-				while (_eventQueue.Dequeue(out ev))
-				{
-					_callback(ev);
+					Event ev;
+					while (_eventQueue.Dequeue(out ev))
+					{
+						_callback(ev);
+					}
+					_notifierState.TrySetStateWithAction(ListenerState.Suspending, ListenerState.Active, () =>
+						{
+							// We may temporarily have a thread active and a thread suspending
+							// this will be temporary and together they will drain the queue
+							while (_eventQueue.Dequeue(out ev))
+							{
+								_callback(ev);
+							}
+							_notifierState.TrySetState(ListenerState.Suspended, ListenerState.Suspending);
+						});
 				}
 			}
 
-			private bool CheckForStopSignal()
+			private void ParallelReceiver()
 			{
-				// Check for stop signal
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.Stopping, (int)ListenerState.StopSignaled) == (int)ListenerState.StopSignaled)
+				if (_recieverState.TrySetState(ListenerState.Active, ListenerState.Unknown))
 				{
-					// When signaled, stop rescheduling.
-					Thread.VolatileWrite(ref _recieverState, (int)ListenerState.Stopped);
-					return true;
+					Background_ParallelReceiver(null);
 				}
-				return false;
+			}
+
+			private void Background_ParallelReceiver(object unused_state)
+			{
+				// Continue until signalled to stop...
+				if (_recieverState.CurrentState == ListenerState.Active)
+				{
+					// Acquiring a buffer may block until a buffer
+					// becomes available.
+					byte[] buffer = Buffers.AcquireBuffer(() => _recieverState.IsGreaterThan(ListenerState.Active));
+
+					// If the buffer is null then the stop-signal was received while acquiring a buffer
+					if (buffer != null)
+					{
+						_listenEP.ReceiveFromAsync(_anyEP, buffer, 0, buffer.Length, (op) =>
+						{
+							if (op.SocketError == SocketError.Success)
+							{
+								// Reschedule the receiver before pulling the buffer out, we want to catch receives
+								// in the tightest loop possible, excepting this little ditty; we don't want to keep
+								// a threadpool thread *for ever* so we continually put the job back in the queue - this
+								// way our parallelism plays nicely with other jobs - now, if only the other jobs were
+								// programmed to give up their threads periodically too... hmmm!
+								ThreadPool.QueueUserWorkItem(new WaitCallback(Background_ParallelReceiver));
+								if (op.BytesTransferred > 0)
+								{
+									_receiveQueue.Enqueue(new ReceiveCapture(op.RemoteEndPoint, op.Buffer, op.BytesTransferred));
+
+									EnsureDeserializerIsActive();
+								}
+							}
+							else if (op.SocketError == SocketError.OperationAborted)
+							{
+								// This is the dispose or stop call. fall through
+								CascadeStopSignal();
+							}
+
+							return false;
+						}, null);
+						return;
+					}
+				}
+
+				// We get here if the receiver is signaled to stop.
+				CascadeStopSignal();
+			}
+
+			private void CascadeStopSignal()
+			{
+				_recieverState.TrySetStateWithAction(ListenerState.Stopping, ListenerState.StopSignaled, () =>
+				{
+					_deserializerState.SetState(ListenerState.StopSignaled);
+					_notifierState.SetState(ListenerState.StopSignaled);
+					_recieverState.SetState(ListenerState.Stopped);
+				});
 			}
 
 			private void Dispose(bool disposing)
 			{
-				// Signal background threads...
-				if (Interlocked.CompareExchange(ref _recieverState, (int)ListenerState.StopSignaled, (int)ListenerState.Active) == (int)ListenerState.Active)
-				{
-					Thread.Sleep(0);
-					Util.Dispose(ref _listenEP);
-				}
+				if (_recieverState.CurrentState == ListenerState.Active)
+					Stop();
 			}
 
 			private void EnsureDeserializerIsActive()
 			{
-				if (Thread.VolatileRead(ref _deserializerState) != (int)ListenerState.Active)
+				if (_deserializerState.IsGreaterThan(ListenerState.Active))
 				{
 					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Deserializer));
 				}
@@ -462,48 +547,10 @@
 
 			private void EnsureNotifierIsActive()
 			{
-				if (Thread.VolatileRead(ref _notifierState) != (int)ListenerState.Active)
+				if (_notifierState.IsGreaterThan(ListenerState.Active))
 				{
 					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Notifier));
 				}
-			}
-
-			private void ParallelReceiver()
-			{
-				if (CheckForStopSignal()) return;
-
-				// Acquiring a buffer may block until a buffer
-				// becomes available.
-				byte[] buffer = Buffers.AcquireBuffer(() =>
-					{
-						return Thread.VolatileRead(ref _recieverState) > (int)ListenerState.Active;
-					});
-
-				if (buffer == null)
-				{
-					// Fall through; stop was signaled before a buffer
-					// could be acquired.
-					return;
-				}
-
-				// Use overlapped receive - the lambda callback will fire in a background thread when bytes arrive.
-				_listenEP.ReceiveFromAsync(_anyEP, buffer, 0, buffer.Length, (a) =>
-				{
-					if (a.SocketError == SocketError.Success)
-					{
-						if (a.BytesTransferred > 0)
-						{
-							// Bytes were received; schedule for deserialization...
-							_receiveQueue.Enqueue(a);
-							EnsureDeserializerIsActive();
-						}
-					}
-
-					// Always restart the receiver - stop signaling is checked on re-entry.
-					ParallelReceiver();
-
-					return false; // not reusing EndPointOpState
-				}, null);
 			}
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep
@@ -523,6 +570,32 @@
 			}
 
 			#endregion Methods
+
+			#region Nested Types
+
+			struct ReceiveCapture
+			{
+				#region Fields
+
+				public byte[] Buffer;
+				public int BytesTransferred;
+				public EndPoint RemoteEndPoint;
+
+				#endregion Fields
+
+				#region Constructors
+
+				public ReceiveCapture(EndPoint ep, byte[] data, int transferred)
+				{
+					this.RemoteEndPoint = ep;
+					this.Buffer = data;
+					this.BytesTransferred = transferred;
+				}
+
+				#endregion Constructors
+			}
+
+			#endregion Nested Types
 		}
 
 		#endregion Nested Types

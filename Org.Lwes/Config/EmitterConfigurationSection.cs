@@ -13,30 +13,37 @@
 	public class EmitterConfigurationSection : ConfigurationSection
 	{
 		#region Fields
+
 		/// <summary>
 		/// Property name for the address.
 		/// </summary>
 		public const string PropertyName_address = "address";
+
 		/// <summary>
 		/// Property name for the encoding used by an emitter.
 		/// </summary>
 		public const string PropertyName_encoding = "encoding";
+
 		/// <summary>
 		/// Property name for the multicast time to live used by an emitter.
 		/// </summary>
 		public const string PropertyName_multicastTimeToLive = "multicastTimeToLive";
+
 		/// <summary>
 		/// Property name for the name of an emitter.
 		/// </summary>
 		public const string PropertyName_name = "name";
+
 		/// <summary>
 		/// Property name indicating whether an emitter uses a parallel strategy.
 		/// </summary>
 		public const string PropertyName_parallel = "parallel";
+
 		/// <summary>
 		/// Property name for the port used by an emitter.
 		/// </summary>
 		public const string PropertyName_port = "port";
+
 		/// <summary>
 		/// Property name indicating whether an emitter uses multicast.
 		/// </summary>

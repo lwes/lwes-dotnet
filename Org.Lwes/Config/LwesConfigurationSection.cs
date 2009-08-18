@@ -17,22 +17,27 @@
 		/// Property name for buffer allocation length.
 		/// </summary>
 		public const string PropertyName_bufferAllocationLength = "bufferAllocationLength";
+
 		/// <summary>
 		/// Property name for the emitters section.
 		/// </summary>
 		public const string PropertyName_emitters = "emitters";
+
 		/// <summary>
 		/// Property name ofr the listeners section.
 		/// </summary>
 		public const string PropertyName_listeners = "listeners";
+
 		/// <summary>
 		/// Property name for maximum buffer memory.
 		/// </summary>
 		public const string PropertyName_maximumBufferMemory = "maximumBufferMemory";
+
 		/// <summary>
 		/// Property name for the event template DBs section.
 		/// </summary>
 		public const string PropertyName_templateDBs = "templateDBs";
+
 		/// <summary>
 		/// Section name used for configuring the Light Weight Event System.
 		/// </summary>

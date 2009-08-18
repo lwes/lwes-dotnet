@@ -106,7 +106,7 @@
 				, Constants.DefaultMulticastAddress
 				, Constants.CDefaultMulticastPort
 				, Constants.CDefaultMulticastTtl
-				, false);
+				, true);
 			return emitter;
 		}
 

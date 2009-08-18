@@ -45,6 +45,10 @@
 							}
 							receivedEvents++;
 						}
+						else
+						{
+							Thread.Sleep(200);
+						}
 					}
 					printerExited.Set();
 				}));

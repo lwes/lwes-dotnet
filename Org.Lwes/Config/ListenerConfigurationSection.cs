@@ -18,18 +18,22 @@
 		/// Property name for the address.
 		/// </summary>
 		public const string PropertyName_address = "address";
+
 		/// <summary>
 		/// Property name for the name.
 		/// </summary>
 		public const string PropertyName_name = "name";
+
 		/// <summary>
 		/// Property name for whether the listener uses a parallel strategy.
 		/// </summary>
 		public const string PropertyName_parallel = "parallel";
+
 		/// <summary>
 		/// Property name for the port.
 		/// </summary>
 		public const string PropertyName_port = "port";
+
 		/// <summary>
 		/// Property name for whether the listener uses multicast.
 		/// </summary>

@@ -59,7 +59,7 @@
 		/// </summary>
 		public void Initialize()
 		{
-			if (!_status.StateTransitionIfLessThan(JournalerState.Initializing, JournalerState.Initializing))
+			if (!_status.SetStateIfLessThan(JournalerState.Initializing, JournalerState.Initializing))
 				throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
 		}
 
@@ -81,7 +81,7 @@
 
 		private void Dispose(bool disposing)
 		{
-			_status.StateTransitionIfLessThan(JournalerState.Disposed, JournalerState.Disposed);
+			_status.SetStateIfLessThan(JournalerState.Disposed, JournalerState.Disposed);
 		}
 
 		#endregion Methods
