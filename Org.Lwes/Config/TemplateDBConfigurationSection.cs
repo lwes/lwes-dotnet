@@ -24,6 +24,11 @@
 		/// </summary>
 		public const string PropertyName_path = "path";
 
+		/// <summary>
+		/// Property name for includeSubdirectories
+		/// </summary>
+		public const string PropertyName_includeSubdirectories = "includeSubdirectories";
+
 		#endregion Fields
 
 		#region Properties
@@ -48,8 +53,40 @@
 			get { return (string)this[PropertyName_path]; }
 			set
 			{
-				this[PropertyName_path] = value;
+				this[PropertyName_path] = (!String.IsNullOrEmpty(value) && value.Contains("$"))
+					? ReplacePathTokens(value)
+					: value;
 			}
+		}
+
+		/// <summary>
+		/// Path where the template DB should look for '.esf' files.
+		/// </summary>
+		[ConfigurationProperty(PropertyName_includeSubdirectories
+			, IsRequired = false
+			, DefaultValue = false)]
+		public bool IncludeSubdirectories
+		{
+			get { return (bool)this[PropertyName_includeSubdirectories]; }
+			set
+			{
+				this[PropertyName_includeSubdirectories] = value;
+			}
+		}
+
+		private static readonly string AppPathToken = "$(AppPath)";
+		private static readonly int AppPathTokenLength = AppPathToken.Length;
+
+		private string ReplacePathTokens(string value)
+		{
+			// The only token supported right now is the app-path, which must appear 
+			// at the beginning of the string...			
+			if (value.StartsWith(AppPathToken, StringComparison.InvariantCultureIgnoreCase))
+			{
+				return String.Concat(AppDomain.CurrentDomain.SetupInformation.ApplicationBase,
+					value.Substring(AppPathTokenLength - 1));
+			}
+			else return value;
 		}
 
 		#endregion Properties

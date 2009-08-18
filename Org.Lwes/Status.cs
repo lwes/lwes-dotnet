@@ -117,6 +117,24 @@
 		}
 
 		/// <summary>
+		/// Performs a state transition if the current state compares less than the <paramref name="comparand"/>
+		/// </summary>
+		/// <param name="value">the target state</param>
+		/// <param name="comparand">comparand state</param>
+		/// <param name="actionOnSuccess">An action to be performed if the state transition succeeds</param>
+		/// <returns><em>true</em> if the current state compares less than <paramref name="comparand"/>; otherwise <em>false</em></returns>
+		public bool SetStateIfLessThan(E value, E comparand, Action actionOnSuccess)
+		{
+			if (actionOnSuccess == null) throw new ArgumentNullException("actionOnSuccess");
+			if (SetStateIfLessThan(value, comparand))
+			{
+				actionOnSuccess();
+				return true;
+			}
+			return false;
+		}
+
+		/// <summary>
 		/// Perfroms a spinwait until the current state equals the target state.
 		/// </summary>
 		/// <param name="targetState">the target state</param>
@@ -147,14 +165,14 @@
 		/// </summary>
 		/// <param name="value">the target state</param>
 		/// <param name="comparand">comparand state must match current state</param>
-		/// <param name="action">action to perform if the state transition is successful</param>
+		/// <param name="actionOnSuccess">action to perform if the state transition is successful</param>
 		/// <returns><em>true</em> if the current state matches <paramref name="comparand"/> and the state is transitioned to <paramref name="value"/>; otherwise <em>false</em></returns>
-		public bool TrySetStateWithAction(E value, E comparand, Action action)
+		public bool TrySetState(E value, E comparand, Action actionOnSuccess)
 		{
-			if (action == null) throw new ArgumentNullException("action");
+			if (actionOnSuccess == null) throw new ArgumentNullException("actionOnSuccess");
 			if (TrySetState(value, comparand))
 			{
-				action();
+				actionOnSuccess();
 				return true;
 			}
 			return false;

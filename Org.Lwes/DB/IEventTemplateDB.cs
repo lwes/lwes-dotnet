@@ -46,9 +46,10 @@
 		/// Initilizes the template db by reading ESF files at <paramref name="filePath"/>.
 		/// </summary>
 		/// <param name="filePath">a path containing ESF (*.esf) files</param>
+		/// <param name="includeSubdirectories">indicates whether subdirectories should be included</param>
 		/// <exception cref="InvalidOperationException">thrown if the template db has already been initalized</exception>
 		/// <exception cref="ArgumentNullException">thrown if <paramref name="filePath"/> is null</exception>		
-		void InitializeFromFilePath(string filePath);
+		void InitializeFromFilePath(string filePath, bool includeSubdirectories);
 
 		/// <summary>
 		/// Initializes the template db by reading ESF templates from the <paramref name="esfStream"/>.

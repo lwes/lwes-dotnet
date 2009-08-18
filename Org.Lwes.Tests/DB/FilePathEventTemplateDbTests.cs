@@ -50,7 +50,7 @@
 			Assert.IsFalse(db.IsInitialized);
 
 			string filePath = Environment.CurrentDirectory;
-			db.InitializeFromFilePath(filePath);
+			db.InitializeFromFilePath(filePath, false);
 
 			Assert.IsTrue(db.IsInitialized);
 			Assert.IsTrue(db.TemplateExists(test.TemplateName));

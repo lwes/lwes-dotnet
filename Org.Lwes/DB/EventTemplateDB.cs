@@ -61,7 +61,7 @@
 			if (namedTemplateDBConfig == null) return null;
 
 			FilePathEventTemplateDB db = new FilePathEventTemplateDB();
-			db.InitializeFromFilePath(namedTemplateDBConfig.Path);
+			db.InitializeFromFilePath(namedTemplateDBConfig.Path, namedTemplateDBConfig.IncludeSubdirectories);
 			return db;
 		}
 
@@ -85,7 +85,7 @@
 		private static IEventTemplateDB CreateFallbackTemplateDB()
 		{
 			FilePathEventTemplateDB db = new FilePathEventTemplateDB();
-			db.InitializeFromFilePath(AppDomain.CurrentDomain.SetupInformation.ApplicationBase);
+			db.InitializeFromFilePath(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, true);
 			return db;
 		}
 

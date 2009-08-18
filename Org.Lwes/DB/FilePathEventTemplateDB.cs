@@ -69,9 +69,11 @@
 		/// Initilizes the template db by reading ESF files at <paramref name="filePath"/>.
 		/// </summary>
 		/// <param name="filePath">a path containing ESF (*.esf) files</param>
+		/// <param name="includeSubdirectories">indicates whether subdirectories should be included
+		/// in the search for esf files</param>
 		/// <exception cref="InvalidOperationException">thrown if the template db has already been initalized</exception>
 		/// <exception cref="ArgumentNullException">thrown if <paramref name="filePath"/> is null</exception>		
-		public void InitializeFromFilePath(string filePath)
+		public void InitializeFromFilePath(string filePath, bool includeSubdirectories)
 		{
 			if (_initialized) throw new InvalidOperationException("Already initialized");
 			if (filePath == null) throw new ArgumentNullException("filePath");
@@ -79,8 +81,8 @@
 				throw new IOException(String.Concat("Directory does not exist: ", filePath));
 
 			EsfParser parser = new EsfParser();
-
-			foreach (var fn in Directory.GetFiles(filePath, EsfFileSearchPattern, SearchOption.AllDirectories))
+			SearchOption option = (includeSubdirectories) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+			foreach (var fn in Directory.GetFiles(filePath, EsfFileSearchPattern, option))
 			{
 				using (FileStream fs = File.Open(fn, FileMode.Open))
 				{

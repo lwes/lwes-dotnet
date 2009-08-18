@@ -302,7 +302,7 @@
 			private void Dispose(bool disposing)
 			{
 				// Signal background threads...
-				_recieverState.TrySetStateWithAction(ListenerState.StopSignaled, ListenerState.Active, () =>
+				_recieverState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
 					{
 						Util.Dispose(ref _listenEP);
 						_reciever.Join(CDisposeBackgroundThreadWaitTimeMS);
@@ -407,7 +407,7 @@
 
 			internal void Stop()
 			{
-				_recieverState.TrySetStateWithAction(ListenerState.StopSignaled, ListenerState.Active, () =>
+				_recieverState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
 				{
 					Util.Dispose(ref _listenEP);
 
@@ -430,7 +430,7 @@
 					{
 						PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
 					}
-					_deserializerState.TrySetStateWithAction(ListenerState.Suspending, ListenerState.Active, () =>
+					_deserializerState.TrySetState(ListenerState.Suspending, ListenerState.Active, () =>
 						{
 							// We may temporarily have a thread active and a thread suspending
 							// this will be temporary and together they will drain the queue
@@ -455,7 +455,7 @@
 					{
 						_callback(ev);
 					}
-					_notifierState.TrySetStateWithAction(ListenerState.Suspending, ListenerState.Active, () =>
+					_notifierState.TrySetState(ListenerState.Suspending, ListenerState.Active, () =>
 						{
 							// We may temporarily have a thread active and a thread suspending
 							// this will be temporary and together they will drain the queue
@@ -523,7 +523,7 @@
 
 			private void CascadeStopSignal()
 			{
-				_recieverState.TrySetStateWithAction(ListenerState.Stopping, ListenerState.StopSignaled, () =>
+				_recieverState.TrySetState(ListenerState.Stopping, ListenerState.StopSignaled, () =>
 				{
 					_deserializerState.SetState(ListenerState.StopSignaled);
 					_notifierState.SetState(ListenerState.StopSignaled);

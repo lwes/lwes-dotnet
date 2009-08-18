@@ -316,7 +316,7 @@
 			private void Dispose(bool p)
 			{
 				// Signal background threads...
-				_senderState.TrySetStateWithAction(EmitterState.StopSignaled, EmitterState.Active, () =>
+				_senderState.TrySetState(EmitterState.StopSignaled, EmitterState.Active, () =>
 					{
 						Util.Dispose(ref _emitEP);
 						BufferManager.ReleaseBuffer(_buffer);
@@ -336,8 +336,9 @@
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			SimpleLockFreeQueue<byte[]> _dataQueue = new SimpleLockFreeQueue<byte[]>();
 			EndPoint _sendToEP;
-			Status<EmitterState> _serializerState;
-			Status<EmitterState> _senderState = new Status<EmitterState>(EmitterState.Suspended);
+			Status<EmitterState> _emitterState;
+			int _serializers;
+			int _senders;
 
 			#endregion Fields
 
@@ -369,7 +370,7 @@
 				_db = db;
 				_sendToEP = sendToEP;
 				_emitEP = new UdpEndpoint(sendToEP).Initialize(finishSocket);
-				_serializerState.SetState(EmitterState.Suspended);
+				_emitterState.SetState(EmitterState.Active);
 			}
 
 			void Background_Serializer(object unused_state)
@@ -377,25 +378,20 @@
 				//
 				// Drains the event queue and performs notification
 				//
-				if (_serializerState.SetStateIfLessThan(EmitterState.Active, EmitterState.StopSignaled))
+				try
 				{
 					Event ev;
-					while (_eventQueue.Dequeue(out ev))
+					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _eventQueue.Dequeue(out ev))
 					{
 						_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
 						EnsureSenderIsActive();
 					}
-					_serializerState.TrySetStateWithAction(EmitterState.Suspending, EmitterState.Active, () =>
-					{
-						// We may temporarily have a thread active and a thread suspending
-						// this will be temporary and together they will drain the queue
-						while (_eventQueue.Dequeue(out ev))
-						{
-							_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
-							EnsureSenderIsActive();
-						}
-						_serializerState.TrySetState(EmitterState.Suspended, EmitterState.Suspending);
-					});
+				}
+				finally
+				{
+					int z = Interlocked.Decrement(ref _serializers);
+					if (z == 0 && !_eventQueue.IsEmpty)
+						EnsureSerializerIsActive();
 				}
 			}
 
@@ -404,75 +400,86 @@
 				//
 				// Drains the event queue and performs notification
 				//
-				byte[] data;
-
-				if (_senderState.SetStateIfLessThan(EmitterState.Active, EmitterState.StopSignaled))
+				try
 				{
-					while (_senderState.CurrentState == EmitterState.Active && _dataQueue.Dequeue(out data))
+					byte[] data;
+					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _dataQueue.Dequeue(out data))
 					{
 						_emitEP.SendToAsync(_sendToEP, data, data.Length, (op) =>
-							{
-								BufferManager.ReleaseBuffer(op.Buffer);
-								if (op.SocketError == SocketError.OperationAborted)
-								{
-									_senderState.SetState(EmitterState.StopSignaled);
-								}
-								return false;
-							});
-					}
-					_senderState.TrySetStateWithAction(EmitterState.Suspending, EmitterState.Active, () =>
-					{
-						// We may temporarily have a thread active and a thread suspending
-						// this will be temporary and together they will drain the queue
-						while (_senderState.IsLessThan(EmitterState.StopSignaled) && _dataQueue.Dequeue(out data))
 						{
-							_emitEP.SendToAsync(_sendToEP, data, data.Length, (op) =>
-							{
-								BufferManager.ReleaseBuffer(op.Buffer);
-								if (op.SocketError == SocketError.OperationAborted)
-								{
-									_senderState.SetState(EmitterState.StopSignaled);
-								}
-								return false;
-							});
-						}
-						_senderState.TrySetState(EmitterState.Suspended, EmitterState.Suspending);
-					});
+							BufferManager.ReleaseBuffer(op.Buffer);
+							return false;
+						});
+					}
+				}
+				finally
+				{
+					int z = Interlocked.Decrement(ref _senders);
+					if (z == 0 && !_dataQueue.IsEmpty)
+						EnsureSenderIsActive();
 				}
 			}
 
 			private void EnsureSerializerIsActive()
 			{
-				if (_serializerState.IsGreaterThan(EmitterState.Active))
+				int current = -1, value = Thread.VolatileRead(ref _serializers);
+				if (value < 1)
 				{
-					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Serializer));
+					WaitCallback cb = new WaitCallback(Background_Serializer);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _serializers, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
 				}
 			}
+
 			private void EnsureSenderIsActive()
 			{
-				if (_senderState.IsGreaterThan(EmitterState.Active))
+				int current = -1, value = Thread.VolatileRead(ref _senders);
+				if (value < 1)
 				{
-					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Sender));
+					WaitCallback cb = new WaitCallback(Background_Sender);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _senders, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
 				}
 			}
 
 			private void Dispose(bool p)
 			{
 				// Signal background threads...
-				_senderState.TrySetStateWithAction(EmitterState.StopSignaled, EmitterState.Active, () =>
+				_emitterState.TrySetState(EmitterState.StopSignaled, EmitterState.Active, () =>
 				{
-					_serializerState.SetState(EmitterState.StopSignaled);
-					_senderState.SetState(EmitterState.StopSignaled);
-					Util.Dispose(ref _emitEP);
-					Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					while (Thread.VolatileRead(ref _serializers) > 0)
+					{
+						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					}
+					while (Thread.VolatileRead(ref _senders) > 0)
+					{
+						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					}
 					byte[] b;
 					while (_dataQueue.Dequeue(out b))
 					{
 						BufferManager.ReleaseBuffer(b);
 					}
+					Util.Dispose(ref _emitEP);
 				});
 			}
-			
+
 			#endregion Methods
 		}
 
