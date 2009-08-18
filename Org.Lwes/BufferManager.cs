@@ -7,11 +7,11 @@
 	using Org.Lwes.Config;
 
 	/// <summary>
-	/// Utility for tracking the amount of memory used
-	/// in event buffering. This class imposes the limit
+	/// A simple utility for managing the the amount of memory used
+	/// for buffering events. This class imposes the limit
 	/// set by the configuration lwes\maximumBufferingMemory
 	/// </summary>
-	internal static class Buffers
+	internal static class BufferManager
 	{
 		#region Fields
 
@@ -25,7 +25,7 @@
 
 		#region Constructors
 
-		static Buffers()
+		static BufferManager()
 		{
 			// Check for override via configuration...
 			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;

@@ -48,7 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Buffers.cs" />
+    <Compile Include="BufferManager.cs" />
     <Compile Include="Config\AbstractConfigurationElementCollection.cs" />
     <Compile Include="Config\TemplateDBConfigurationElementCollection.cs" />
     <Compile Include="Config\TemplateDBConfigurationSection.cs" />
@@ -108,6 +108,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sample Configuration.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

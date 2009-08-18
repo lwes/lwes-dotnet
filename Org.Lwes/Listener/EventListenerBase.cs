@@ -209,7 +209,7 @@
 				_anyEP = (listenEP.AddressFamily == AddressFamily.InterNetworkV6)
 					? new IPEndPoint(IPAddress.IPv6Any, listenEP.Port)
 					: new IPEndPoint(IPAddress.Any, listenEP.Port);
-				_buffer = Buffers.AcquireBuffer(null);
+				_buffer = BufferManager.AcquireBuffer(null);
 				_listenEP = new UdpEndpoint(listenEP).Initialize(finishSocket);
 				// Start a dedicated background thread to handle the receiving...
 				_reciever = new Thread(Background_Receiver);
@@ -306,7 +306,7 @@
 					{
 						Util.Dispose(ref _listenEP);
 						_reciever.Join(CDisposeBackgroundThreadWaitTimeMS);
-						Buffers.ReleaseBuffer(_buffer);
+						BufferManager.ReleaseBuffer(_buffer);
 						_buffer = null;
 					});
 			}
@@ -483,7 +483,7 @@
 				{
 					// Acquiring a buffer may block until a buffer
 					// becomes available.
-					byte[] buffer = Buffers.AcquireBuffer(() => _recieverState.IsGreaterThan(ListenerState.Active));
+					byte[] buffer = BufferManager.AcquireBuffer(() => _recieverState.IsGreaterThan(ListenerState.Active));
 
 					// If the buffer is null then the stop-signal was received while acquiring a buffer
 					if (buffer != null)
@@ -565,7 +565,7 @@
 					.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
 
 				_eventQueue.Enqueue(ev);
-				Buffers.ReleaseBuffer(buffer);
+				BufferManager.ReleaseBuffer(buffer);
 				EnsureNotifierIsActive();
 			}
 

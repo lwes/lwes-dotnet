@@ -308,7 +308,7 @@
 			{
 				_db = db;
 				_sendToEP = sendToEP;
-				_buffer = Buffers.AcquireBuffer(null);
+				_buffer = BufferManager.AcquireBuffer(null);
 				_emitEP = new UdpEndpoint(sendToEP).Initialize(finishSocket);
 				_senderState.SetState(EmitterState.Active);
 			}
@@ -319,7 +319,7 @@
 				_senderState.TrySetStateWithAction(EmitterState.StopSignaled, EmitterState.Active, () =>
 					{
 						Util.Dispose(ref _emitEP);
-						Buffers.ReleaseBuffer(_buffer);
+						BufferManager.ReleaseBuffer(_buffer);
 						_buffer = null;
 					});
 			}
@@ -412,7 +412,7 @@
 					{
 						_emitEP.SendToAsync(_sendToEP, data, data.Length, (op) =>
 							{
-								Buffers.ReleaseBuffer(op.Buffer);
+								BufferManager.ReleaseBuffer(op.Buffer);
 								if (op.SocketError == SocketError.OperationAborted)
 								{
 									_senderState.SetState(EmitterState.StopSignaled);
@@ -428,7 +428,7 @@
 						{
 							_emitEP.SendToAsync(_sendToEP, data, data.Length, (op) =>
 							{
-								Buffers.ReleaseBuffer(op.Buffer);
+								BufferManager.ReleaseBuffer(op.Buffer);
 								if (op.SocketError == SocketError.OperationAborted)
 								{
 									_senderState.SetState(EmitterState.StopSignaled);
@@ -468,7 +468,7 @@
 					byte[] b;
 					while (_dataQueue.Dequeue(out b))
 					{
-						Buffers.ReleaseBuffer(b);
+						BufferManager.ReleaseBuffer(b);
 					}
 				});
 			}

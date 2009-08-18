@@ -31,15 +31,15 @@
 		private static readonly string EventName_TraceMessage = "TraceMessage";
 		private static readonly string SupportedAttributes_Address = "Address";
 		private static readonly string SupportedAttributes_BindEmitterByName = "BindEmitterByName";
-		private static readonly string SupportedAttributes_EmitterType = "EmitterType";
 		private static readonly string SupportedAttributes_MutlicastTimeToLive = "MutlicastTimeToLive";
 		private static readonly string SupportedAttributes_Parallel = "Parallel";
+		private static readonly string SupportedAttributes_Multicast = "Multicast";
 		private static readonly string SupportedAttributes_Port = "Port";
 
 		IEventEmitter _emitter;
 		string _emitterByName;
-		string _emitterType;
 		IPAddress _ipAddress;
+		bool? _multicast;
 		int? _multicastTtl;
 		bool? _parallel;
 		int? _port;
@@ -100,18 +100,6 @@
 		}
 
 		/// <summary>
-		/// The emitter type. { unicast | multicast }
-		/// </summary>
-		public string EmitterType
-		{
-			get
-			{
-				return Util.LazyInitialize<string>(ref _emitterType,
-					() => { return GetRawAttributeValue(SupportedAttributes_EmitterType); });
-			}
-		}
-
-		/// <summary>
 		/// Indicates whether the listener is threadsafe (it is).
 		/// </summary>
 		public override bool IsThreadSafe
@@ -158,6 +146,25 @@
 		}
 
 		/// <summary>
+		/// Indicates whether the underlying emitter will use a multicast
+		/// strategy when emitting.
+		/// </summary>
+		public bool Multicast
+		{
+			get
+			{
+				if (!_multicast.HasValue)
+				{
+					string input = GetRawAttributeValue(SupportedAttributes_Multicast);
+					_multicast = (String.IsNullOrEmpty(input))
+						? default(bool)
+						: bool.Parse(input);
+				}
+				return _multicast.Value;
+			}
+		}
+
+		/// <summary>
 		/// Indicates the port the underlying emitter will use.
 		/// </summary>
 		public int Port
@@ -182,33 +189,32 @@
 				return Util.LazyInitialize<IEventEmitter>(ref _emitter,
 					() =>
 					{
-						if (BindEmitterByName != null)
+						if (!String.IsNullOrEmpty(BindEmitterByName))
 							return EventEmitter.CreateNamedEmitter(BindEmitterByName);
 						else
 						{
-							if (String.Equals(EmitterType, "unicast", StringComparison.InvariantCultureIgnoreCase))
+							if (Multicast)
 							{
-								return null;
-							}
-							else
-							{
-								// Default to the mutlicast emitter
 								MulticastEventEmitter emitter = new MulticastEventEmitter();
 								IPAddress addy = Address ?? Constants.DefaultMulticastAddress;
 								int port = (Port == 0) ? Constants.CDefaultMulticastPort : Port;
 								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;
 								emitter.Initialize(SupportedEncoding.Default,
-			#if DEBUG
-			 true,
-			#else
+#if DEBUG
+ true,
+#else
 									false,
-			#endif
-			 EventTemplateDB.CreateDefault(),
+#endif
+ EventTemplateDB.CreateDefault(),
 									addy,
 									port,
 									ttl,
 									Parallel);
 								return emitter;
+							}
+							else
+							{
+								throw new NotImplementedException("UnicastEventEmitter not supported");
 							}
 						}
 					});
@@ -445,7 +451,7 @@
 			return new string[]
 			{
 				SupportedAttributes_BindEmitterByName,
-				SupportedAttributes_EmitterType,
+				SupportedAttributes_Multicast,
 				SupportedAttributes_Address,
 				SupportedAttributes_Port,
 				SupportedAttributes_MutlicastTimeToLive,
