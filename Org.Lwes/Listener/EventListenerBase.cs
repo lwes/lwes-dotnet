@@ -355,12 +355,12 @@
 			EndPoint _anyEP;
 			Action<Event> _callback;
 			IEventTemplateDB _db;
-			Status<ListenerState> _deserializerState = new Status<ListenerState>(ListenerState.Suspended);
+			int _deserializers;
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			UdpEndpoint _listenEP;
-			Status<ListenerState> _notifierState = new Status<ListenerState>(ListenerState.Suspended);
+			int _notifiers;
 			SimpleLockFreeQueue<ReceiveCapture> _receiveQueue;
-			Status<ListenerState> _recieverState;
+			Status<ListenerState> _listenerState;
 
 			#endregion Fields
 
@@ -407,12 +407,31 @@
 
 			internal void Stop()
 			{
-				_recieverState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
+				_listenerState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
 				{
 					Util.Dispose(ref _listenEP);
 
-					_recieverState.SpinWaitForState(ListenerState.Stopped, () => Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS));
+					_listenerState.SpinWaitForState(ListenerState.Stopped, () => Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS));
 				});
+			}
+
+			private void EnsureDeserializerIsActive()
+			{
+				int current = -1, value = Thread.VolatileRead(ref _deserializers);
+				if (value < 1)
+				{
+					WaitCallback cb = new WaitCallback(Background_Deserializer);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _deserializers, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
+				}
 			}
 
 			private void Background_Deserializer(object unused_state)
@@ -423,24 +442,20 @@
 				// transforms those records into Event objects by deserialization.
 				//
 				//
-				if (_deserializerState.SetStateIfLessThan(ListenerState.Active, ListenerState.StopSignaled))
+				try
 				{
 					ReceiveCapture input;
-					while (_receiveQueue.Dequeue(out input))
+					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _receiveQueue.Dequeue(out input))
 					{
 						PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
 					}
-					_deserializerState.TrySetState(ListenerState.Suspending, ListenerState.Active, () =>
-						{
-							// We may temporarily have a thread active and a thread suspending
-							// this will be temporary and together they will drain the queue
-							while (_receiveQueue.Dequeue(out input))
-							{
-								PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
-							}
-							_deserializerState.TrySetState(ListenerState.Suspended, ListenerState.Suspending);
-						});
 				}
+				finally
+				{
+					int z = Interlocked.Decrement(ref _deserializers);
+					if (z == 0 && !_receiveQueue.IsEmpty)
+						EnsureDeserializerIsActive();
+				} 
 			}
 
 			private void Background_Notifier(object unused_state)
@@ -448,29 +463,26 @@
 				//
 				// Drains the event queue and performs notification
 				//
-				if (_notifierState.SetStateIfLessThan(ListenerState.Active, ListenerState.StopSignaled))
+				try
 				{
 					Event ev;
-					while (_eventQueue.Dequeue(out ev))
+					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _eventQueue.Dequeue(out ev))
 					{
 						_callback(ev);
 					}
-					_notifierState.TrySetState(ListenerState.Suspending, ListenerState.Active, () =>
-						{
-							// We may temporarily have a thread active and a thread suspending
-							// this will be temporary and together they will drain the queue
-							while (_eventQueue.Dequeue(out ev))
-							{
-								_callback(ev);
-							}
-							_notifierState.TrySetState(ListenerState.Suspended, ListenerState.Suspending);
-						});
 				}
+				finally
+				{
+					int z = Interlocked.Decrement(ref _notifiers);
+					if (z == 0 && !_receiveQueue.IsEmpty)
+						EnsureNotifierIsActive();
+				}				
 			}
 
 			private void ParallelReceiver()
 			{
-				if (_recieverState.TrySetState(ListenerState.Active, ListenerState.Unknown))
+				// Only startup once.
+				if (_listenerState.TrySetState(ListenerState.Active, ListenerState.Unknown))
 				{
 					Background_ParallelReceiver(null);
 				}
@@ -479,11 +491,11 @@
 			private void Background_ParallelReceiver(object unused_state)
 			{
 				// Continue until signalled to stop...
-				if (_recieverState.CurrentState == ListenerState.Active)
+				if (_listenerState.IsLessThan(ListenerState.StopSignaled))
 				{
 					// Acquiring a buffer may block until a buffer
 					// becomes available.
-					byte[] buffer = BufferManager.AcquireBuffer(() => _recieverState.IsGreaterThan(ListenerState.Active));
+					byte[] buffer = BufferManager.AcquireBuffer(() => _listenerState.IsGreaterThan(ListenerState.Active));
 
 					// If the buffer is null then the stop-signal was received while acquiring a buffer
 					if (buffer != null)
@@ -523,34 +535,44 @@
 
 			private void CascadeStopSignal()
 			{
-				_recieverState.TrySetState(ListenerState.Stopping, ListenerState.StopSignaled, () =>
+				_listenerState.TrySetState(ListenerState.Stopping, ListenerState.StopSignaled, () =>
 				{
-					_deserializerState.SetState(ListenerState.StopSignaled);
-					_notifierState.SetState(ListenerState.StopSignaled);
-					_recieverState.SetState(ListenerState.Stopped);
+					while (Thread.VolatileRead(ref _deserializers) > 0)
+					{
+						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					}
+					while (Thread.VolatileRead(ref _notifiers) > 0)
+					{
+						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					}
+					_listenerState.SetState(ListenerState.Stopped);
 				});
 			}
 
 			private void Dispose(bool disposing)
 			{
-				if (_recieverState.CurrentState == ListenerState.Active)
+				if (_listenerState.CurrentState == ListenerState.Active)
 					Stop();
 			}
-
-			private void EnsureDeserializerIsActive()
-			{
-				if (_deserializerState.IsGreaterThan(ListenerState.Active))
-				{
-					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Deserializer));
-				}
-			}
-
+			
 			private void EnsureNotifierIsActive()
 			{
-				if (_notifierState.IsGreaterThan(ListenerState.Active))
+				
+				int current = -1, value = Thread.VolatileRead(ref _notifiers);
+				if (value < 1)
 				{
-					ThreadPool.QueueUserWorkItem(new WaitCallback(Background_Notifier));
-				}
+					WaitCallback cb = new WaitCallback(Background_Notifier);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _notifiers, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
+				}				
 			}
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep
