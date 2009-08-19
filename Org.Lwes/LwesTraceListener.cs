@@ -31,9 +31,9 @@
 		private static readonly string EventName_TraceMessage = "TraceMessage";
 		private static readonly string SupportedAttributes_Address = "Address";
 		private static readonly string SupportedAttributes_BindEmitterByName = "BindEmitterByName";
+		private static readonly string SupportedAttributes_Multicast = "Multicast";
 		private static readonly string SupportedAttributes_MutlicastTimeToLive = "MutlicastTimeToLive";
 		private static readonly string SupportedAttributes_Parallel = "Parallel";
-		private static readonly string SupportedAttributes_Multicast = "Multicast";
 		private static readonly string SupportedAttributes_Port = "Port";
 
 		IEventEmitter _emitter;
@@ -108,6 +108,25 @@
 		}
 
 		/// <summary>
+		/// Indicates whether the underlying emitter will use a multicast
+		/// strategy when emitting.
+		/// </summary>
+		public bool Multicast
+		{
+			get
+			{
+				if (!_multicast.HasValue)
+				{
+					string input = GetRawAttributeValue(SupportedAttributes_Multicast);
+					_multicast = (String.IsNullOrEmpty(input))
+						? default(bool)
+						: bool.Parse(input);
+				}
+				return _multicast.Value;
+			}
+		}
+
+		/// <summary>
 		/// Indicates the multicast time-to-live if underlying emitter
 		/// is using multicast.
 		/// </summary>
@@ -142,25 +161,6 @@
 						: bool.Parse(input);
 				}
 				return _parallel.Value;
-			}
-		}
-
-		/// <summary>
-		/// Indicates whether the underlying emitter will use a multicast
-		/// strategy when emitting.
-		/// </summary>
-		public bool Multicast
-		{
-			get
-			{
-				if (!_multicast.HasValue)
-				{
-					string input = GetRawAttributeValue(SupportedAttributes_Multicast);
-					_multicast = (String.IsNullOrEmpty(input))
-						? default(bool)
-						: bool.Parse(input);
-				}
-				return _multicast.Value;
 			}
 		}
 
@@ -200,12 +200,12 @@
 								int port = (Port == 0) ? Constants.CDefaultMulticastPort : Port;
 								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;
 								emitter.Initialize(SupportedEncoding.Default,
-#if DEBUG
- true,
-#else
+			#if DEBUG
+			 true,
+			#else
 									false,
-#endif
- EventTemplateDB.CreateDefault(),
+			#endif
+			 EventTemplateDB.CreateDefault(),
 									addy,
 									port,
 									ttl,

@@ -281,7 +281,7 @@
 		/// <param name="ev">an event to serialize</param>
 		/// <returns>a byte array containing the event's serialized bytes</returns>
 		public static byte[] SerializeToMemoryBuffer(Event ev)
-		{			
+		{
 			byte[] buffer = BufferManager.AcquireBuffer(ev.CalculateEncodedByteCount(), null);
 			ev.BinaryEncode(buffer, 0);
 			return buffer;

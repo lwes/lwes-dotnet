@@ -36,33 +36,35 @@
 				}
 			};
 
-			IEventListener listener = EventListener.CreateDefault();
-			Assert.IsNotNull(listener);
-			listener.OnEventArrival += new HandleEventArrival(listener_OnEventArrival);
-
-			IEventEmitter emitter = EventEmitter.CreateDefault();
-			Assert.IsNotNull(emitter);
-
-			// Create the event...
-			Event _sourceEvent = new Event(e.EventName)
-				.SetValue(e.Attributes.UserName.Name, e.Attributes.UserName.Value)
-				.SetValue(e.Attributes.Password.Name, e.Attributes.Password.Value)
-				.SetValue(e.Attributes.ClientIP.Name, e.Attributes.ClientIP.Value)
-				.SetValue(e.Attributes.Successful.Name, e.Attributes.Successful.Value);
-
-			long time_out_ticks = DateTime.Now.Ticks + TimeSpan.FromSeconds(20).Ticks;
-
-			while (!_done && DateTime.Now.Ticks < time_out_ticks)
+			Event sourceEvent;
+			using (IEventListener listener = EventListener.CreateDefault())
 			{
-				emitter.Emit(_sourceEvent);
-				Thread.Sleep(1000);
-			}
+				Assert.IsNotNull(listener);
+				listener.OnEventArrival += new HandleEventArrival(listener_OnEventArrival);
 
+				IEventEmitter emitter = EventEmitter.CreateDefault();
+				Assert.IsNotNull(emitter);
+
+				// Create the event...
+				sourceEvent = new Event(e.EventName)
+					.SetValue(e.Attributes.UserName.Name, e.Attributes.UserName.Value)
+					.SetValue(e.Attributes.Password.Name, e.Attributes.Password.Value)
+					.SetValue(e.Attributes.ClientIP.Name, e.Attributes.ClientIP.Value)
+					.SetValue(e.Attributes.Successful.Name, e.Attributes.Successful.Value);
+
+				long time_out_ticks = DateTime.Now.Ticks + TimeSpan.FromSeconds(20).Ticks;
+
+				while (!_done && DateTime.Now.Ticks < time_out_ticks)
+				{
+					emitter.Emit(sourceEvent);
+					Thread.Sleep(1000);
+				}
+			}
 			Assert.IsTrue(_done, "Should have received an event");
-			Assert.AreEqual(_sourceEvent[e.Attributes.UserName.Name].GetValue<string>(), _receivedEvent[e.Attributes.UserName.Name].GetValue<string>());
-			Assert.AreEqual(_sourceEvent[e.Attributes.Password.Name].GetValue<ulong>(), _receivedEvent[e.Attributes.Password.Name].GetValue<ulong>());
-			Assert.AreEqual(_sourceEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>(), _receivedEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>());
-			Assert.AreEqual(_sourceEvent[e.Attributes.Successful.Name].GetValue<bool>(), _receivedEvent[e.Attributes.Successful.Name].GetValue<bool>());
+			Assert.AreEqual(sourceEvent[e.Attributes.UserName.Name].GetValue<string>(), _receivedEvent[e.Attributes.UserName.Name].GetValue<string>());
+			Assert.AreEqual(sourceEvent[e.Attributes.Password.Name].GetValue<ulong>(), _receivedEvent[e.Attributes.Password.Name].GetValue<ulong>());
+			Assert.AreEqual(sourceEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>(), _receivedEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>());
+			Assert.AreEqual(sourceEvent[e.Attributes.Successful.Name].GetValue<bool>(), _receivedEvent[e.Attributes.Successful.Name].GetValue<bool>());
 			Console.Write(_receivedEvent.ToString());
 		}
 

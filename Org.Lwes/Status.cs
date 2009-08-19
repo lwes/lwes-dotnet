@@ -62,7 +62,6 @@
 			return Thread.VolatileRead(ref _status) < Convert.ToInt32(comparand);
 		}
 
-
 		/// <summary>
 		/// Transitions to the given state.
 		/// </summary>
@@ -179,6 +178,5 @@
 		}
 
 		#endregion Methods
-
 	}
 }

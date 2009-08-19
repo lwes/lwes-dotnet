@@ -358,9 +358,9 @@
 			int _deserializers;
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			UdpEndpoint _listenEP;
+			Status<ListenerState> _listenerState;
 			int _notifiers;
 			SimpleLockFreeQueue<ReceiveCapture> _receiveQueue;
-			Status<ListenerState> _listenerState;
 
 			#endregion Fields
 
@@ -409,29 +409,19 @@
 			{
 				_listenerState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
 				{
+					while (Thread.VolatileRead(ref _deserializers) > 0)
+					{
+						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					}
+					while (Thread.VolatileRead(ref _notifiers) > 0)
+					{
+						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
+					}
+					
 					Util.Dispose(ref _listenEP);
 
 					_listenerState.SpinWaitForState(ListenerState.Stopped, () => Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS));
 				});
-			}
-
-			private void EnsureDeserializerIsActive()
-			{
-				int current = -1, value = Thread.VolatileRead(ref _deserializers);
-				if (value < 1)
-				{
-					WaitCallback cb = new WaitCallback(Background_Deserializer);
-					while (true)
-					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _deserializers, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
-					}
-				}
 			}
 
 			private void Background_Deserializer(object unused_state)
@@ -455,7 +445,7 @@
 					int z = Interlocked.Decrement(ref _deserializers);
 					if (z == 0 && !_receiveQueue.IsEmpty)
 						EnsureDeserializerIsActive();
-				} 
+				}
 			}
 
 			private void Background_Notifier(object unused_state)
@@ -476,15 +466,6 @@
 					int z = Interlocked.Decrement(ref _notifiers);
 					if (z == 0 && !_receiveQueue.IsEmpty)
 						EnsureNotifierIsActive();
-				}				
-			}
-
-			private void ParallelReceiver()
-			{
-				// Only startup once.
-				if (_listenerState.TrySetState(ListenerState.Active, ListenerState.Unknown))
-				{
-					Background_ParallelReceiver(null);
 				}
 			}
 
@@ -522,6 +503,9 @@
 								// This is the dispose or stop call. fall through
 								CascadeStopSignal();
 							}
+							else
+							{
+							}
 
 							return false;
 						}, null);
@@ -554,10 +538,28 @@
 				if (_listenerState.CurrentState == ListenerState.Active)
 					Stop();
 			}
-			
+
+			private void EnsureDeserializerIsActive()
+			{
+				int current = -1, value = Thread.VolatileRead(ref _deserializers);
+				if (value < 1)
+				{
+					WaitCallback cb = new WaitCallback(Background_Deserializer);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _deserializers, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
+				}
+			}
+
 			private void EnsureNotifierIsActive()
 			{
-				
 				int current = -1, value = Thread.VolatileRead(ref _notifiers);
 				if (value < 1)
 				{
@@ -572,7 +574,16 @@
 							break;
 						}
 					}
-				}				
+				}
+			}
+
+			private void ParallelReceiver()
+			{
+				// Only startup once.
+				if (_listenerState.TrySetState(ListenerState.Active, ListenerState.Unknown))
+				{
+					Background_ParallelReceiver(null);
+				}
 			}
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep

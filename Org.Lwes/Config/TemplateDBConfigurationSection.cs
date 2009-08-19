@@ -15,6 +15,11 @@
 		#region Fields
 
 		/// <summary>
+		/// Property name for includeSubdirectories
+		/// </summary>
+		public const string PropertyName_includeSubdirectories = "includeSubdirectories";
+
+		/// <summary>
 		/// Property name for the tempate DB's name.
 		/// </summary>
 		public const string PropertyName_name = "name";
@@ -24,14 +29,27 @@
 		/// </summary>
 		public const string PropertyName_path = "path";
 
-		/// <summary>
-		/// Property name for includeSubdirectories
-		/// </summary>
-		public const string PropertyName_includeSubdirectories = "includeSubdirectories";
+		private static readonly string AppPathToken = "$(AppPath)";
+		private static readonly int AppPathTokenLength = AppPathToken.Length;
 
 		#endregion Fields
 
 		#region Properties
+
+		/// <summary>
+		/// Path where the template DB should look for '.esf' files.
+		/// </summary>
+		[ConfigurationProperty(PropertyName_includeSubdirectories
+			, IsRequired = false
+			, DefaultValue = false)]
+		public bool IncludeSubdirectories
+		{
+			get { return (bool)this[PropertyName_includeSubdirectories]; }
+			set
+			{
+				this[PropertyName_includeSubdirectories] = value;
+			}
+		}
 
 		/// <summary>
 		/// The name of the configured template DB.
@@ -59,28 +77,14 @@
 			}
 		}
 
-		/// <summary>
-		/// Path where the template DB should look for '.esf' files.
-		/// </summary>
-		[ConfigurationProperty(PropertyName_includeSubdirectories
-			, IsRequired = false
-			, DefaultValue = false)]
-		public bool IncludeSubdirectories
-		{
-			get { return (bool)this[PropertyName_includeSubdirectories]; }
-			set
-			{
-				this[PropertyName_includeSubdirectories] = value;
-			}
-		}
+		#endregion Properties
 
-		private static readonly string AppPathToken = "$(AppPath)";
-		private static readonly int AppPathTokenLength = AppPathToken.Length;
+		#region Methods
 
 		private string ReplacePathTokens(string value)
 		{
-			// The only token supported right now is the app-path, which must appear 
-			// at the beginning of the string...			
+			// The only token supported right now is the app-path, which must appear
+			// at the beginning of the string...
 			if (value.StartsWith(AppPathToken, StringComparison.InvariantCultureIgnoreCase))
 			{
 				return String.Concat(AppDomain.CurrentDomain.SetupInformation.ApplicationBase,
@@ -89,6 +93,6 @@
 			else return value;
 		}
 
-		#endregion Properties
+		#endregion Methods
 	}
 }

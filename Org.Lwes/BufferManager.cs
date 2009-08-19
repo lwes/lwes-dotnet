@@ -19,10 +19,14 @@
 		static readonly int __maxMemory = Constants.CMaximumBufferingMemory;
 
 		static int __memoryInUse = 0;
-#if DEBUG
-		static int __waitCount = 0;
-#endif
+
 		#endregion Fields
+
+		#if DEBUG
+
+		static int __waitCount = 0;
+
+		#endif
 
 		#region Constructors
 
@@ -75,9 +79,9 @@
 						return new byte[bufferLength];
 					}
 				}
-#if DEBUG
+			#if DEBUG
 				Interlocked.Increment(ref __waitCount);
-#endif
+			#endif
 			}
 		}
 

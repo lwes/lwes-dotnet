@@ -16,6 +16,7 @@
 	public abstract class EventEmitterBase : IEventEmitter
 	{
 		#region Fields
+
 		const int CDisposeBackgroundThreadWaitTimeMS = 200;
 
 		IEventTemplateDB _db;
@@ -331,14 +332,14 @@
 		{
 			#region Fields
 
+			SimpleLockFreeQueue<byte[]> _dataQueue = new SimpleLockFreeQueue<byte[]>();
 			IEventTemplateDB _db;
 			UdpEndpoint _emitEP;
-			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
-			SimpleLockFreeQueue<byte[]> _dataQueue = new SimpleLockFreeQueue<byte[]>();
-			EndPoint _sendToEP;
 			Status<EmitterState> _emitterState;
-			int _serializers;
+			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
+			EndPoint _sendToEP;
 			int _senders;
+			int _serializers;
 
 			#endregion Fields
 
@@ -373,28 +374,6 @@
 				_emitterState.SetState(EmitterState.Active);
 			}
 
-			void Background_Serializer(object unused_state)
-			{
-				//
-				// Drains the event queue and performs notification
-				//
-				try
-				{
-					Event ev;
-					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _eventQueue.Dequeue(out ev))
-					{
-						_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
-						EnsureSenderIsActive();
-					}
-				}
-				finally
-				{
-					int z = Interlocked.Decrement(ref _serializers);
-					if (z == 0 && !_eventQueue.IsEmpty)
-						EnsureSerializerIsActive();
-				}
-			}
-
 			void Background_Sender(object unused_state)
 			{
 				//
@@ -420,41 +399,25 @@
 				}
 			}
 
-			private void EnsureSerializerIsActive()
+			void Background_Serializer(object unused_state)
 			{
-				int current = -1, value = Thread.VolatileRead(ref _serializers);
-				if (value < 1)
+				//
+				// Drains the event queue and performs notification
+				//
+				try
 				{
-					WaitCallback cb = new WaitCallback(Background_Serializer);
-					while (true)
+					Event ev;
+					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _eventQueue.Dequeue(out ev))
 					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _serializers, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
+						_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
+						EnsureSenderIsActive();
 					}
 				}
-			}
-
-			private void EnsureSenderIsActive()
-			{
-				int current = -1, value = Thread.VolatileRead(ref _senders);
-				if (value < 1)
+				finally
 				{
-					WaitCallback cb = new WaitCallback(Background_Sender);
-					while (true)
-					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _senders, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
-					}
+					int z = Interlocked.Decrement(ref _serializers);
+					if (z == 0 && !_eventQueue.IsEmpty)
+						EnsureSerializerIsActive();
 				}
 			}
 
@@ -478,6 +441,44 @@
 					}
 					Util.Dispose(ref _emitEP);
 				});
+			}
+
+			private void EnsureSenderIsActive()
+			{
+				int current = -1, value = Thread.VolatileRead(ref _senders);
+				if (value < 1)
+				{
+					WaitCallback cb = new WaitCallback(Background_Sender);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _senders, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
+				}
+			}
+
+			private void EnsureSerializerIsActive()
+			{
+				int current = -1, value = Thread.VolatileRead(ref _serializers);
+				if (value < 1)
+				{
+					WaitCallback cb = new WaitCallback(Background_Serializer);
+					while (true)
+					{
+						current = value;
+						value = Interlocked.CompareExchange(ref _serializers, value + 1, current);
+						if (value == current)
+						{
+							ThreadPool.QueueUserWorkItem(cb);
+							break;
+						}
+					}
+				}
 			}
 
 			#endregion Methods

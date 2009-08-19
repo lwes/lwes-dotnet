@@ -1,19 +1,20 @@
-﻿using System;
-using System.Text;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Threading;
-
-namespace Org.Lwes.Tests
+﻿namespace Org.Lwes.Tests
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Text;
+	using System.Threading;
+
+	using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 	/// <summary>
 	/// Summary description for StatusTests
 	/// </summary>
 	[TestClass]
 	public class StatusTests
 	{
-		public TestContext TestContext { get; set; }
+		#region Enumerations
 
 		enum TestStates
 		{
@@ -26,14 +27,27 @@ namespace Org.Lwes.Tests
 			OffStateDone = 7,
 			Done = 8
 		}
-		
+
+		#endregion Enumerations
+
+		#region Properties
+
+		public TestContext TestContext
+		{
+			get; set;
+		}
+
+		#endregion Properties
+
+		#region Methods
+
 		[TestMethod]
 		public void TestParallelStateTransitions()
 		{
 			// The intention here is to cause maximum contention on the Status<> class's methods
-			// and thereby provide sufficient confidence that the class provides non-blocking, 
+			// and thereby provide sufficient confidence that the class provides non-blocking,
 			// thread-safe state transitions.
-			var control = new 
+			var control = new
 				{
 					NumberOfThreadsPerState = 10,
 					WaitPulseMilliseconds = 200,
@@ -52,13 +66,12 @@ namespace Org.Lwes.Tests
 			int transitionsOffStateDone = 0;
 			int transitionsDone = 0;
 
-
 			for (int i = 0; i < control.NumberOfThreadsPerState; i++)
 			{
 				// These background jobs transition the state from TestStates.Undecided
 				// to TestStates.On - when successful it increments transitionsOn.
 				ThreadPool.QueueUserWorkItem(new WaitCallback((unused_state) =>
-					{						
+					{
 						state.SpinWaitForState(TestStates.Undecided, () => Thread.Sleep(control.WaitPulseMilliseconds));
 						Interlocked.Increment(ref onThreadsStarted);
 						while (state.IsLessThan(TestStates.ShutdownSignaled))
@@ -76,7 +89,7 @@ namespace Org.Lwes.Tests
 				// These background jobs transition the state from TestStates.On
 				// to TestStates.Off - when successful it increments transitionsOff.
 				ThreadPool.QueueUserWorkItem(new WaitCallback((unused_state) =>
-					{						
+					{
 						state.SpinWaitForState(TestStates.On, () => Thread.Sleep(control.WaitPulseMilliseconds));
 						Interlocked.Increment(ref offThreadsStarted);
 
@@ -124,7 +137,6 @@ namespace Org.Lwes.Tests
 			// Wait for background threads to shutdown...
 			state.SpinWaitForState(TestStates.Done, () => Thread.Sleep(control.WaitPulseMilliseconds));
 
-			
 			Assert.IsTrue(Thread.VolatileRead(ref transitionsOn) >= Thread.VolatileRead(ref transitionsOff));
 			Assert.IsTrue(Thread.VolatileRead(ref transitionsOff) >= Thread.VolatileRead(ref transitionsUndecided));
 			Assert.AreEqual(1, Thread.VolatileRead(ref transitionsOnStateDone));
@@ -135,5 +147,7 @@ namespace Org.Lwes.Tests
 			Console.WriteLine(String.Concat("Threads transitioninig to Off: ", offThreadsStarted, ", transitions = ", transitionsOff));
 			Console.WriteLine(String.Concat("Threads transitioninig to Undecided: ", undecidedThreadsStarted, ", transitions = ", transitionsUndecided));
 		}
+
+		#endregion Methods
 	}
 }
