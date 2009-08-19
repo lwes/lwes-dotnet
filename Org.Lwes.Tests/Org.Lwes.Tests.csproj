@@ -56,6 +56,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="EventConstantsTests.cs" />
     <Compile Include="SerializerTests.cs" />
+    <Compile Include="StatusTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Org.Lwes\Org.Lwes.csproj">
