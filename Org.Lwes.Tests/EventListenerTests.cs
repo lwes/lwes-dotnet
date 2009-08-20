@@ -8,17 +8,12 @@
 
 	using Org.Lwes.Emitter;
 	using Org.Lwes.Listener;
+	using Moq;
 
 	[TestClass]
 	public class EventListenerTests
 	{
-		#region Fields
-
-		bool _done;
-		Event _receivedEvent;
-
-		#endregion Fields
-
+		
 		#region Methods
 
 		[TestMethod]
@@ -35,12 +30,24 @@
 					Successful = new { Name = "successful", Token = TypeToken.BOOLEAN, Value = false }
 				}
 			};
+			bool done = false;
+			Event receivedEvent = default(Event);
+			
+			// Mock an IEventSink that records the incomming event...
+			Mock<IEventSink> mock = new Mock<IEventSink>();
+			mock.SetupGet(sink => sink.IsThreadSafe).Returns(true);
+			mock.Setup(framework => framework.HandleEventArrival(It.IsAny<IEventSinkRegistrationKey>(), It.IsAny<Event>()))
+				.Callback<IEventSinkRegistrationKey, Event>((k, ev) =>
+				{
+					receivedEvent = ev;
+					done = true;
+				});
 
 			Event sourceEvent;
 			using (IEventListener listener = EventListener.CreateDefault())
 			{
 				Assert.IsNotNull(listener);
-				listener.OnEventArrival += new HandleEventArrival(listener_OnEventArrival);
+				listener.RegisterEventSink(mock.Object).Activate();
 
 				IEventEmitter emitter = EventEmitter.CreateDefault();
 				Assert.IsNotNull(emitter);
@@ -54,26 +61,21 @@
 
 				long time_out_ticks = DateTime.Now.Ticks + TimeSpan.FromSeconds(20).Ticks;
 
-				while (!_done && DateTime.Now.Ticks < time_out_ticks)
+				while (!done && DateTime.Now.Ticks < time_out_ticks)
 				{
 					emitter.Emit(sourceEvent);
 					Thread.Sleep(1000);
 				}
 			}
-			Assert.IsTrue(_done, "Should have received an event");
-			Assert.AreEqual(sourceEvent[e.Attributes.UserName.Name].GetValue<string>(), _receivedEvent[e.Attributes.UserName.Name].GetValue<string>());
-			Assert.AreEqual(sourceEvent[e.Attributes.Password.Name].GetValue<ulong>(), _receivedEvent[e.Attributes.Password.Name].GetValue<ulong>());
-			Assert.AreEqual(sourceEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>(), _receivedEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>());
-			Assert.AreEqual(sourceEvent[e.Attributes.Successful.Name].GetValue<bool>(), _receivedEvent[e.Attributes.Successful.Name].GetValue<bool>());
-			Console.Write(_receivedEvent.ToString());
+			Assert.IsTrue(done, "Should have received an event");
+			Assert.AreEqual(sourceEvent[e.Attributes.UserName.Name].GetValue<string>(), receivedEvent[e.Attributes.UserName.Name].GetValue<string>());
+			Assert.AreEqual(sourceEvent[e.Attributes.Password.Name].GetValue<ulong>(), receivedEvent[e.Attributes.Password.Name].GetValue<ulong>());
+			Assert.AreEqual(sourceEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>(), receivedEvent[e.Attributes.ClientIP.Name].GetValue<IPAddress>());
+			Assert.AreEqual(sourceEvent[e.Attributes.Successful.Name].GetValue<bool>(), receivedEvent[e.Attributes.Successful.Name].GetValue<bool>());
+			Console.Write(receivedEvent.ToString());
 		}
 
-		void listener_OnEventArrival(IEventListener sender, Event ev)
-		{
-			_done = true;
-			_receivedEvent = ev;
-		}
-
+		
 		#endregion Methods
 	}
 }

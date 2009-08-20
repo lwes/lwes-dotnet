@@ -178,5 +178,18 @@
 		}
 
 		#endregion Methods
+
+		public bool SpinToggleState(E value, E toggle)
+		{
+			int c = Convert.ToInt32(toggle);
+			int v = Convert.ToInt32(value);
+			while (true)
+			{
+				int r = Interlocked.CompareExchange(ref _status, c, v);
+				if (r == v) return true;
+				if (r != c) return false;
+				Thread.SpinWait(1000);
+			}
+		}
 	}
 }

@@ -83,6 +83,7 @@
     <Compile Include="Listener\EventListener.cs" />
     <Compile Include="Listener\IEventListener.cs" />
     <Compile Include="Listener\EventListenerBase.cs" />
+    <Compile Include="Listener\IEventSink.cs" />
     <Compile Include="Listener\MulticastEventListener.cs" />
     <Compile Include="Listener\UnicastEventListener.cs" />
     <Compile Include="LwesTraceListener.cs" />

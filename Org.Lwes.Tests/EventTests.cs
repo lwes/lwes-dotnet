@@ -209,7 +209,7 @@
 			// Serialization requires an IEventTemplateDB, we're gonna mock it here...
 			var mock = new Mock<IEventTemplateDB>();
 			Event dummy;
-			mock.Setup(db => db.TryCreateEvent(e.EventName, out dummy, false, SupportedEncoding.Default))
+			mock.Setup(db => db.TryCreateEvent(e.EventName, out dummy, It.IsAny<bool>(), It.IsAny<SupportedEncoding>()))
 				.Returns(false);
 
 			// Perform a roundtrip serialization...
@@ -250,7 +250,7 @@
 		public void RoundTripDotNetSerializationOfRandomlyGeneratedEvents()
 		{
 			// DotNet serializer will cause OutOfMemoryException if we try to serialize a million
-			var t = new { EventsToGenerate = 10000, MaxNumberOfAttributes = 36 };
+			var t = new { EventsToGenerate = 10000, MaxNumberOfAttributes = 36, Encoding = SupportedEncoding.ISO_8859_1 };
 
 			int totalNumberOfAttributes = 0;
 
@@ -277,7 +277,7 @@
 			{
 				for (int i = 0; i < t.EventsToGenerate && err == null; i++)
 				{
-					Event original = EventUtils.GenerateRandomEvent(String.Concat("MyEvent_", i), t.MaxNumberOfAttributes);
+					Event original = EventUtils.GenerateRandomEvent(String.Concat("MyEvent_", i), t.MaxNumberOfAttributes, t.Encoding);
 					totalNumberOfAttributes += original.AttributeCount;
 					serializationQueue.Enqueue(original);
 				}
@@ -343,14 +343,14 @@
 		[TestMethod]
 		public void RoundTripLwesSerializationOfRandomlyGeneratedEvents()
 		{
-			var t = new { EventsToGenerate = 10000, MaxNumberOfAttributes = 36 };
+			var t = new { EventsToGenerate = 10000, MaxNumberOfAttributes = 36, Encoding = SupportedEncoding.ISO_8859_1 };
 
 			int totalNumberOfAttributes = 0;
 
 			// Serialization requires an IEventTemplateDB, we're gonna mock it here...
 			var mock = new Mock<IEventTemplateDB>();
 			Event dummy;
-			mock.Setup(db => db.TryCreateEvent(String.Empty, out dummy, false, SupportedEncoding.Default))
+			mock.Setup(db => db.TryCreateEvent(String.Empty, out dummy, false, t.Encoding))
 				.Returns(false);
 
 			SimpleLockFreeQueue<Event> serializationQueue = new SimpleLockFreeQueue<Event>();
@@ -366,7 +366,7 @@
 				{
 					for (int i = 0; i < t.EventsToGenerate; i++)
 					{
-						Event original = EventUtils.GenerateRandomEvent(String.Concat("MyEvent_", i), t.MaxNumberOfAttributes);
+						Event original = EventUtils.GenerateRandomEvent(String.Concat("MyEvent_", i), t.MaxNumberOfAttributes, t.Encoding);
 						totalNumberOfAttributes += original.AttributeCount;
 						serializationQueue.Enqueue(original);
 					}
@@ -406,63 +406,6 @@
 				, " which is ", (t.EventsToGenerate / timer.ElapsedMilliseconds), " per millisecond and "
 				, (totalNumberOfAttributes / timer.ElapsedMilliseconds), " attributes per millisecond.",
 				Environment.NewLine, (totalByteCount / timer.Elapsed.TotalSeconds).ToString("N00"), " bytes per second"));
-		}
-
-		[TestMethod]
-		public void RoundTripSerialization()
-		{
-			var e = new
-				{
-					EventName = "UserLogin",
-					Attributes = new
-					{
-						UserName = new { Name = "username", Token = TypeToken.STRING, Value = "bob" },
-						Password = new { Name = "password", Token = TypeToken.UINT64, Value = 0xfeedabbadeadbeefUL },
-						ClientIP = new { Name = "clientIP", Token = TypeToken.IP_ADDR, Value = IPAddress.Parse("127.0.0.1") },
-						Successful = new { Name = "successful", Token = TypeToken.BOOLEAN, Value = false }
-					}
-				};
-
-			// Create the event...
-			Event ev = new Event(e.EventName)
-				.SetValue(e.Attributes.UserName.Name, e.Attributes.UserName.Value)
-				.SetValue(e.Attributes.Password.Name, e.Attributes.Password.Value)
-				.SetValue(e.Attributes.ClientIP.Name, e.Attributes.ClientIP.Value)
-				.SetValue(e.Attributes.Successful.Name, e.Attributes.Successful.Value);
-
-			// Ensure the token types match...
-			Assert.AreEqual(e.Attributes.UserName.Token, ev[e.Attributes.UserName.Name].TypeToken);
-			Assert.AreEqual(e.Attributes.Password.Token, ev[e.Attributes.Password.Name].TypeToken);
-			Assert.AreEqual(e.Attributes.ClientIP.Token, ev[e.Attributes.ClientIP.Name].TypeToken);
-			Assert.AreEqual(e.Attributes.Successful.Token, ev[e.Attributes.Successful.Name].TypeToken);
-
-			// Ensure the values match...
-			Assert.AreEqual(e.Attributes.UserName.Value, ev[e.Attributes.UserName.Name].GetValue<string>());
-			Assert.AreEqual(e.Attributes.Password.Value, ev[e.Attributes.Password.Name].GetValue<UInt64>());
-			Assert.AreEqual(e.Attributes.ClientIP.Value, ev[e.Attributes.ClientIP.Name].GetValue<IPAddress>());
-			Assert.AreEqual(e.Attributes.Successful.Value, ev[e.Attributes.Successful.Name].GetValue<bool>());
-
-			// Serialization requires an IEventTemplateDB, we're gonna mock it here...
-			var mock = new Mock<IEventTemplateDB>();
-			Event dummy;
-			mock.Setup(db => db.TryCreateEvent(e.EventName, out dummy, false, SupportedEncoding.Default))
-				.Returns(false);
-
-			// Perform a roundtrip serialization...
-			byte[] data = LwesSerializer.Serialize(ev);
-			Event ev2 = LwesSerializer.Deserialize(data, 0, data.Length, mock.Object);
-
-			// Ensure the token types match on the deserialized object...
-			Assert.AreEqual(e.Attributes.UserName.Token, ev2[e.Attributes.UserName.Name].TypeToken);
-			Assert.AreEqual(e.Attributes.Password.Token, ev2[e.Attributes.Password.Name].TypeToken);
-			Assert.AreEqual(e.Attributes.ClientIP.Token, ev2[e.Attributes.ClientIP.Name].TypeToken);
-			Assert.AreEqual(e.Attributes.Successful.Token, ev2[e.Attributes.Successful.Name].TypeToken);
-
-			// Ensure the values match on the deserialized object...
-			Assert.AreEqual(e.Attributes.UserName.Value, ev2[e.Attributes.UserName.Name].GetValue<string>());
-			Assert.AreEqual(e.Attributes.Password.Value, ev2[e.Attributes.Password.Name].GetValue<UInt64>());
-			Assert.AreEqual(e.Attributes.ClientIP.Value, ev2[e.Attributes.ClientIP.Name].GetValue<IPAddress>());
-			Assert.AreEqual(e.Attributes.Successful.Value, ev2[e.Attributes.Successful.Name].GetValue<bool>());
 		}
 
 		#endregion Methods

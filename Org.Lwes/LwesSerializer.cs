@@ -39,7 +39,7 @@
 		{
 			#if DEBUG
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 1) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 1) throw new BadLwesDataException(String.Concat("Expected ATTRIBUTEWORD at offset ", offset));
 			#endif
 			return ReadStringWithByteLengthPrefix(buffer, ref offset, coder);
 		}
@@ -55,7 +55,7 @@
 		public static bool ReadBoolean(byte[] buffer, ref int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 1) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 1) throw new BadLwesDataException(String.Concat("Expected Boolean at offset ", offset));
 
 			return buffer[offset++] == 1;
 		}
@@ -71,7 +71,7 @@
 		public static byte ReadByte(byte[] buffer, ref int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 1) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 1) throw new BadLwesDataException(String.Concat("Expected byte at offset ", offset));
 
 			return buffer[offset++];
 		}
@@ -89,7 +89,7 @@
 		{
 			#if DEBUG
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 1) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 1) throw new BadLwesDataException(String.Concat("Expected EVENTWORD at offset ", offset));
 			#endif
 			return ReadStringWithByteLengthPrefix(buffer, ref offset, coder);
 		}
@@ -105,7 +105,7 @@
 		public static IPAddress ReadIPAddress(byte[] buffer, ref int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 4) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 4) throw new BadLwesDataException(String.Concat("Expected IPAddress at offset ", offset));
 
 			uint result;
 			unchecked
@@ -181,7 +181,7 @@
 		{
 			#if DEBUG
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 1) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 1) throw new BadLwesDataException(String.Concat("Expected String at offset ", offset));
 			#endif
 			return ReadStringWithUInt16LengthPrefix(buffer, ref offset, coder);
 		}
@@ -197,7 +197,7 @@
 		public static ushort ReadUInt16(byte[] buffer, ref int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 2) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 2) throw new BadLwesDataException(String.Concat("Expected UInt16 at offset ", offset));
 
 			ushort result;
 			unchecked
@@ -219,7 +219,7 @@
 		public static uint ReadUInt32(byte[] buffer, ref int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 4) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 4) throw new BadLwesDataException(String.Concat("Expected UInt32 at offset ", offset));
 
 			uint result;
 			unchecked
@@ -244,7 +244,7 @@
 		public static ulong ReadUInt64(byte[] buffer, ref int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length - 8) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0 || offset > buffer.Length - 8) throw new BadLwesDataException(String.Concat("Expected UInt64 at offset ", offset));
 
 			ulong result;
 			unchecked
@@ -514,6 +514,8 @@
 			#endif
 			int ofs = offset;
 			int count = ReadByte(buffer, ref ofs);
+			if (ofs + count > buffer.Length) throw new BadLwesDataException(
+				String.Concat("Cannot deserialize incoming string at offset ", ofs));
 			char[] result = new char[count];
 			int bytesUsed;
 			int charsUsed;
@@ -538,6 +540,8 @@
 			#endif
 			int ofs = offset;
 			int count = ReadUInt16(buffer, ref ofs);
+			if (ofs + count > buffer.Length) 
+				throw new BadLwesDataException(String.Concat("Cannot deserialize incoming string at offset ", ofs));
 			char[] result = new char[count];
 			int bytesUsed;
 			int charsUsed;

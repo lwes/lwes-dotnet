@@ -32,7 +32,7 @@
 			{
 				for (int i = 0; i < control.NumberOfEventsToEmit; i++)
 				{
-					Event ev = EventUtils.GenerateRandomEvent(String.Concat("TestEvent_", i), control.MaxNumberOfAttributes);
+					Event ev = EventUtils.GenerateRandomEvent(String.Concat("TestEvent_", i), control.MaxNumberOfAttributes, SupportedEncoding.UTF_8);
 					emitter.Emit(ev);
 				}
 			}

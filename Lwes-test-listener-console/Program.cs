@@ -11,19 +11,14 @@
 
 	class Program
 	{
-		#region Fields
-
-		static SimpleLockFreeQueue<Event> __incomingEvents = new SimpleLockFreeQueue<Event>();
-
-		#endregion Fields
-
 		#region Methods
 
 		static void Main(string[] args)
-		{
+		{			
 			using (IEventListener listener = EventListener.CreateDefault())
 			{
-				listener.OnEventArrival += new HandleEventArrival(listener_OnEventArrival);
+				EventSink sink = new EventSink();
+				listener.RegisterEventSink(sink).Activate();
 				ManualResetEvent printerExited = new ManualResetEvent(false);
 				bool userChoseToExit = false;
 				int receivedEvents = 0;
@@ -37,7 +32,7 @@
 					Event ev;
 					while (!userChoseToExit)
 					{
-						if (__incomingEvents.Dequeue(out ev))
+						if (sink.Events.Dequeue(out ev))
 						{
 							lock (consoleWriteLock)
 							{
@@ -81,10 +76,31 @@
 			}
 		}
 
-		static void listener_OnEventArrival(IEventListener sender, Org.Lwes.Event ev)
+		class EventSink : IEventSink
 		{
-			__incomingEvents.Enqueue(ev);
+			SimpleLockFreeQueue<Event> _incomingEvents = new SimpleLockFreeQueue<Event>();
+			#region IEventSink Members
+
+			public bool IsThreadSafe
+			{
+				get { return false; }
+			}
+
+			public void HandleEventArrival(IEventSinkRegistrationKey key, Event ev)
+			{
+				_incomingEvents.Enqueue(ev);
+			}
+
+			public GarbageHandlingStrategy HandleGarbageArrival(IEventSinkRegistrationKey key, System.Net.EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
+			{
+				return GarbageHandlingStrategy.FailfastForTrafficOnEndpoint;
+			}
+
+			#endregion
+
+			public SimpleLockFreeQueue<Event> Events { get { return _incomingEvents; } }
 		}
+
 
 		#endregion Methods
 	}
