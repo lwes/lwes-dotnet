@@ -16,8 +16,6 @@
 	/// </remarks>
 	public interface IEventEmitter : IDisposable
 	{
-		#region Properties
-
 		/// <summary>
 		/// The character encoding used when performing event IO.
 		/// </summary>
@@ -50,10 +48,6 @@
 		{
 			get;
 		}
-
-		#endregion Properties
-
-		#region Methods
 
 		/// <summary>
 		/// Creates an event type identified by the event name.
@@ -92,7 +86,5 @@
 		/// </summary>
 		/// <param name="evt">the event being emitted</param>
 		void Emit(Event evt);
-
-		#endregion Methods
 	}
 }

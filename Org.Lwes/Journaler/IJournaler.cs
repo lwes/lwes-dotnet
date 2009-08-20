@@ -42,8 +42,6 @@
 	/// </summary>
 	public interface IJournaler : IDisposable
 	{
-		#region Properties
-
 		/// <summary>
 		/// Gets the journaler's state.
 		/// </summary>
@@ -51,10 +49,6 @@
 		{
 			get;
 		}
-
-		#endregion Properties
-
-		#region Methods
 
 		/// <summary>
 		/// Initializes the journaler.
@@ -70,7 +64,5 @@
 		/// Stops the journaler.
 		/// </summary>
 		void Stop();
-
-		#endregion Methods
 	}
 }

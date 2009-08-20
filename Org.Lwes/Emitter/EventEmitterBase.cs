@@ -67,15 +67,11 @@
 
 		interface IEmitter : IDisposable
 		{
-			#region Methods
-
 			void Emit(Event ev);
 
 			void Start(IEventTemplateDB db
 				, IPEndPoint sendToEP
 				, Action<Socket, IPEndPoint> finishSocket);
-
-			#endregion Methods
 		}
 
 		#endregion Nested Interfaces
@@ -317,7 +313,7 @@
 			private void Dispose(bool p)
 			{
 				// Signal background threads...
-				_senderState.TrySetState(EmitterState.StopSignaled, EmitterState.Active, () =>
+				_senderState.TryTransition(EmitterState.StopSignaled, EmitterState.Active, () =>
 					{
 						Util.Dispose(ref _emitEP);
 						BufferManager.ReleaseBuffer(_buffer);
@@ -424,7 +420,7 @@
 			private void Dispose(bool p)
 			{
 				// Signal background threads...
-				_emitterState.TrySetState(EmitterState.StopSignaled, EmitterState.Active, () =>
+				_emitterState.TryTransition(EmitterState.StopSignaled, EmitterState.Active, () =>
 				{
 					while (Thread.VolatileRead(ref _serializers) > 0)
 					{

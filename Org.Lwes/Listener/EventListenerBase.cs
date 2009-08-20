@@ -1,6 +1,7 @@
 ﻿namespace Org.Lwes.Listener
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 	using System.Net;
 	using System.Net.Sockets;
@@ -8,7 +9,6 @@
 
 	using Org.Lwes.DB;
 	using Org.Lwes.Properties;
-	using System.Collections.Generic;
 
 	/// <summary>
 	/// Base class for event listeners.
@@ -18,10 +18,19 @@
 		#region Fields
 
 		const int CDisposeBackgroundThreadWaitTimeMS = 200;
+		const int Leader = 1;
 
+		List<RegistrationKey> _additions = new List<RegistrationKey>();
+		int _consolidationVotes = 0;
 		IEventTemplateDB _db;
 		IPEndPoint _endpoint;
+		ListenerGarbageHandling _garbageHandling;
+		Dictionary<TrafficTrackingKey, TrafficTrackingRec> _garbageTracking;
+		Object _garbageTrackingLock;
 		IListener _listener;
+		ReaderWriterLockSlim _notifications = new ReaderWriterLockSlim();
+		int _notifiers = 0;
+		RegistrationKey[] _registrations = new RegistrationKey[0];
 
 		#endregion Fields
 
@@ -33,6 +42,14 @@
 		~EventListenerBase()
 		{
 			Dispose(false);
+		}
+
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
+		protected EventListenerBase()
+		{
+			_cacheHandleErrorsDelegate = new Action<RegistrationKey, Exception>(HandleErrorsOnEventSink);
 		}
 
 		#endregion Constructors
@@ -56,14 +73,10 @@
 
 		interface IListener : IDisposable
 		{
-			#region Methods
-
 			void Start(IEventTemplateDB db
 				, IPEndPoint listenEP
 				, Action<Socket, IPEndPoint> finishSocket
 				, EventListenerBase listener);
-
-			#endregion Methods
 		}
 
 		#endregion Nested Interfaces
@@ -92,6 +105,100 @@
 		}
 
 		/// <summary>
+		/// Registers an event sink with the listener without activating the
+		/// event sink.
+		/// </summary>
+		/// <param name="sink">the event sink to register</param>
+		/// <returns>A registration key for the event sink</returns>		
+		public IEventSinkRegistrationKey RegisterEventSink(IEventSink sink)
+		{
+			if (sink == null) throw new ArgumentNullException("sink");
+			RegistrationKey key = new RegistrationKey(this, sink);
+			AddRegistration(key);
+			return key;
+		}
+
+		private void HandleErrorsOnEventSink(RegistrationKey key, Exception e)
+		{
+			// TODO: Strategies for event sinks that cause exceptions.
+		}
+
+		Action<RegistrationKey, Exception> _cacheHandleErrorsDelegate;
+		internal void PerformEventArrival(Event ev)
+		{
+			int n = Interlocked.Increment(ref _notifiers);
+			try
+			{
+				if (n == Leader) _notifications.EnterUpgradeableReadLock();
+				else _notifications.EnterReadLock();
+				try
+				{
+					foreach (var r in _registrations)
+					{
+						if (r.PerformEventArrival(ev, _cacheHandleErrorsDelegate))
+						{
+							Interlocked.Increment(ref _consolidationVotes);
+						}
+					}
+					if (n == Leader && Thread.VolatileRead(ref _consolidationVotes) > 0)
+					{
+						SafeConsolidateRegistrations();
+					}
+				}
+				finally
+				{
+					if (n == Leader) _notifications.ExitUpgradeableReadLock();
+					else _notifications.ExitReadLock();
+				}
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _notifiers);
+			}
+		}
+
+		internal GarbageHandlingVote PerformGarbageArrival(EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
+		{
+			GarbageHandlingVote strategy = GarbageHandlingVote.None;
+			int n = Interlocked.Increment(ref _notifiers);
+			try
+			{
+				if (n == Leader) _notifications.EnterUpgradeableReadLock();
+				else _notifications.EnterReadLock();
+				try
+				{
+					foreach (var r in _registrations)
+					{
+						GarbageHandlingVote strategyVote = r.PerformGarbageArrival(
+							remoteEndPoint, 
+							priorGarbageCountForEndpoint, 
+							garbage,
+							_cacheHandleErrorsDelegate
+							);
+						if (strategyVote > strategy)
+						{
+							strategy = strategyVote;
+						}
+					}
+					if (n == Leader && Thread.VolatileRead(ref _consolidationVotes) > 0)
+					{
+						SafeConsolidateRegistrations();
+					}
+				}
+				finally
+				{
+					if (n == Leader) _notifications.ExitUpgradeableReadLock();
+					else _notifications.ExitReadLock();
+				}
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _notifiers);
+			}
+			return strategy;
+		}
+
+		/// <summary>
 		/// Ensures the emitter has been initialized.
 		/// </summary>
 		/// <exception cref="InvalidOperationException">thrown if the emitter has not yet been initialized.</exception>
@@ -115,9 +222,14 @@
 		/// <param name="db">template database used when creating events</param>
 		/// <param name="endpoint">an IP endpoint where listening will occur</param>
 		/// <param name="parallel">whether the listener will listen and dispatch events in parallel</param>
+		/// <param name="garbageHandling">indicates the garbage handling strategy the listener will use</param>
 		/// <param name="finishSocket">callback method used to complete the setup of the socket
 		/// connected to the given <paramref name="endpoint"/></param>
-		protected void Initialize(IEventTemplateDB db, IPEndPoint endpoint, bool parallel, Action<Socket, IPEndPoint> finishSocket)
+		protected void Initialize(IEventTemplateDB db
+			, IPEndPoint endpoint
+			, bool parallel
+			, ListenerGarbageHandling garbageHandling
+			, Action<Socket, IPEndPoint> finishSocket)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (endpoint == null) throw new ArgumentNullException("endpoint");
@@ -129,13 +241,163 @@
 				? (IListener)new ParallelListener()
 				: (IListener)new BackgroundThreadListener();
 
+			_garbageHandling = garbageHandling;
+			if (_garbageHandling > ListenerGarbageHandling.FailSilently)
+			{
+				_garbageTracking = new Dictionary<TrafficTrackingKey, TrafficTrackingRec>();
+				_garbageTrackingLock = new Object();
+			}
+
 			listener.Start(db, endpoint, finishSocket, this);
 			_listener = listener;
+		}
+
+		private void AddRegistration(RegistrationKey key)
+		{
+			int n = Interlocked.Increment(ref _notifiers);
+
+			try
+			{
+				if (n == Leader)
+				{
+					if (_notifications.TryEnterWriteLock(20))
+					{
+						try
+						{
+							lock (_additions)
+							{
+								_additions.Add(key);
+								UnsafeConsolidateRegistrations();
+							}
+							return;
+						}
+						finally
+						{
+							_notifications.ExitWriteLock();
+						}
+					}
+				}
+
+				// We couldn't get the writelock so we're gonna have to schedule
+				// the key to be added later...
+				lock (_additions)
+				{
+					_additions.Add(key);
+					Interlocked.Increment(ref _consolidationVotes);
+				}
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _notifiers);
+			}
+		}
+
+		private GarbageHandlingVote GetTrafficStrategyForEndpoint(EndPoint ep)
+		{
+			if (_garbageHandling == ListenerGarbageHandling.FailSilently)
+			{
+				return GarbageHandlingVote.None;
+			}
+			else
+			{
+				IPEndPoint ipep = (IPEndPoint)ep;
+				TrafficTrackingKey key = new TrafficTrackingKey(ep);
+				TrafficTrackingRec tracking;
+				lock (_garbageTrackingLock)
+				{
+					if (_garbageTracking.TryGetValue(key, out tracking))
+					{
+						return tracking.Strategy;
+					}
+				}
+				return GarbageHandlingVote.Default;
+			}
+		}
+
+		private void HandleGarbageData(EndPoint ep, byte[] buffer, int offset, int bytesTransferred)
+		{
+			if (_garbageHandling > ListenerGarbageHandling.FailSilently)
+			{				
+				IPEndPoint ipep = (IPEndPoint)ep;
+				TrafficTrackingKey key = new TrafficTrackingKey(ep);
+				TrafficTrackingRec tracking;
+				lock (_garbageTrackingLock)
+				{
+					if (!_garbageTracking.TryGetValue(key, out tracking))
+					{
+						tracking = new TrafficTrackingRec(ep);
+						_garbageTracking.Add(key, tracking);
+					}
+				}
+				if (_garbageHandling == ListenerGarbageHandling.AskEventSinksToVoteOnStrategy 
+					&& tracking.Strategy != GarbageHandlingVote.IgnoreAllTrafficFromEndpoint)
+				{
+					PerformGarbageDataNotification(tracking, ep, buffer, offset, bytesTransferred);
+				}
+			}
+		}
+
+		private void PerformGarbageDataNotification(TrafficTrackingRec tracking, EndPoint rcep, byte[] buffer, int offset, int bytesTransferred)
+		{
+			byte[] copy = new byte[bytesTransferred];
+			Array.Copy(buffer, copy, bytesTransferred);
+			tracking.Strategy = PerformGarbageArrival(rcep, tracking.IncrementGarbageCount(), copy);
+		}
+
+		private void SafeConsolidateRegistrations()
+		{
+			_notifications.EnterWriteLock();
+			try
+			{
+				lock (_additions)
+				{
+					UnsafeConsolidateRegistrations();
+				}
+			}
+			finally
+			{
+				_notifications.ExitWriteLock();
+			}
+		}
+
+		private void UnsafeConsolidateRegistrations()
+		{
+			_registrations = (from r in _registrations
+												where r.Status != EventSinkStatus.Canceled
+												select r).Concat(from r in _additions
+																				 where r.Status != EventSinkStatus.Canceled
+																				 select r).ToArray();
+			_additions.Clear();
+
+			Thread.VolatileWrite(ref _consolidationVotes, 0);
 		}
 
 		#endregion Methods
 
 		#region Nested Types
+
+		struct TrafficTrackingKey
+		{
+			#region Fields
+
+			public uint Address;
+			public int AddressFamily;
+			public int Port;
+
+			#endregion Fields
+
+			#region Constructors
+
+			public TrafficTrackingKey(EndPoint ep)
+			{
+				IPEndPoint ipep = (IPEndPoint)ep;
+				Address = BitConverter.ToUInt32(ipep.Address.GetAddressBytes(), 0);
+				Port = ipep.Port;
+				AddressFamily = (int)ipep.AddressFamily;
+			}
+
+			#endregion Constructors
+		}
 
 		/// <remarks>
 		/// Uses background threads to receive events from LWES. This class uses two
@@ -148,10 +410,10 @@
 
 			EndPoint _anyEP;
 			byte[] _buffer;
-			EventListenerBase _listener;
 			IEventTemplateDB _db;
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			UdpEndpoint _listenEP;
+			EventListenerBase _listener;
 			Thread _notifier;
 			Status<ListenerState> _notifierState;
 			Object _notifierWaitObject;
@@ -214,7 +476,7 @@
 
 			internal void Stop()
 			{
-				if (_recieverState.TrySetState(ListenerState.StopSignaled, ListenerState.Active))
+				if (_recieverState.TryTransition(ListenerState.StopSignaled, ListenerState.Active))
 				{
 					// Close the listener, this will cause the receiver thread to wakeup
 					// if it is blocked waiting for IO on the socket.
@@ -240,6 +502,7 @@
 							{
 								_notifierState.SetState(ListenerState.Suspended);
 								Monitor.Wait(_notifierWaitObject);
+								continue;
 							}
 							// If the stop signal arrived during a wait then bail out...
 							if (_notifierState.CurrentState == ListenerState.StopSignaled)
@@ -257,7 +520,7 @@
 
 			private void Background_Receiver(object unused_state)
 			{
-				if (_recieverState.TrySetState(ListenerState.Active, ListenerState.Unknown))
+				if (_recieverState.TryTransition(ListenerState.Active, ListenerState.Unknown))
 				{
 					try
 					{
@@ -266,11 +529,20 @@
 						{
 							EndPoint rcep = _anyEP;
 							// Perform a blocking receive...
-							int bytes = _listenEP.ReceiveFrom(ref rcep, _buffer, 0, _buffer.Length);
-							if (bytes > 0)
+							int bytesTransferred = _listenEP.ReceiveFrom(ref rcep, _buffer, 0, _buffer.Length);
+							if (bytesTransferred > 0)
 							{
-								// Data was received, deserialize the event...
-								PerformEventDeserializationAndQueueForNotification(rcep, _buffer, 0, bytes);
+								GarbageHandlingVote handling = _listener.GetTrafficStrategyForEndpoint(rcep);
+								if (handling == GarbageHandlingVote.None)
+								{
+									PerformEventDeserializationAndQueueForNotification(rcep, _buffer, 0, bytesTransferred);
+								}
+								else if (handling == GarbageHandlingVote.TreatTrafficFromEndpointAsGarbage)
+								{
+									_listener.HandleGarbageData(rcep, _buffer, 0, bytesTransferred);
+								}
+								// Otherwise the handling was GarbageHandlingStrategy.FailfastForTrafficOnEndpoint
+								// and we're going to ignore it altogether.
 							}
 						}
 					}
@@ -279,7 +551,7 @@
 						if (se.ErrorCode != 10004)
 							throw se;
 					}
-					if (_recieverState.TrySetState(ListenerState.Stopping, ListenerState.StopSignaled))
+					if (_recieverState.TryTransition(ListenerState.Stopping, ListenerState.StopSignaled))
 					{
 						// Cascade the stop signal to the notifier and wait for it to exit...
 						_notifierState.SetState(ListenerState.StopSignaled);
@@ -291,7 +563,7 @@
 			private void Dispose(bool disposing)
 			{
 				// Signal background threads...
-				_recieverState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
+				_recieverState.TryTransition(ListenerState.StopSignaled, ListenerState.Active, () =>
 					{
 						Util.Dispose(ref _listenEP);
 						_reciever.Join(CDisposeBackgroundThreadWaitTimeMS);
@@ -302,13 +574,13 @@
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep
 				, byte[] buffer
-				, int p, int bytes)
+				, int offset, int bytesTransferred)
 			{
 				IPEndPoint ep = (IPEndPoint)rcep;
 				try
 				{
 					// For received events, set MetaEventInfo.ReciptTime, MetaEventInfo.SenderIP, and MetaEventInfo.SenderPort...
-					Event ev = Event.BinaryDecode(_db, buffer, 0, bytes)
+					Event ev = Event.BinaryDecode(_db, buffer, offset, bytesTransferred)
 						.SetValue(Constants.MetaEventInfoAttributes.ReceiptTime.Name, Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow))
 						.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address)
 						.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
@@ -316,15 +588,12 @@
 				}
 				catch (BadLwesDataException)
 				{
-					byte[] copy = new byte[bytes];
-					Array.Copy(buffer, copy, bytes);
-					GarbageHandlingStrategy strategy = _listener.PerformGarbageArrival(rcep, 0, copy);
-					// TODO: Implement the garbage handling strategies
+					_listener.HandleGarbageData(rcep, buffer, offset, bytesTransferred);
 				}
 
 				if (_notifierState.CurrentState > ListenerState.Active)
 				{
-					// notifier thread is either suspending or suspended;
+					// notifier thread is suspended;
 					// wake it up...
 					lock (_notifierWaitObject)
 					{
@@ -351,11 +620,11 @@
 			#region Fields
 
 			EndPoint _anyEP;
-			EventListenerBase _listener;
 			IEventTemplateDB _db;
 			int _deserializers;
 			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			UdpEndpoint _listenEP;
+			EventListenerBase _listener;
 			Status<ListenerState> _listenerState;
 			int _notifiers;
 			SimpleLockFreeQueue<ReceiveCapture> _receiveQueue;
@@ -385,14 +654,14 @@
 			/// <param name="db">an event template DB</param>
 			/// <param name="listenEP">the listening endpoint</param>
 			/// <param name="finishSocket">a callback method that is called upon to finish the listening socket</param>
-			/// <param name="callback">a callback method to receive events</param>
+			/// <param name="owner">the owner</param>
 			public void Start(IEventTemplateDB db
 				, IPEndPoint listenEP
 				, Action<Socket, IPEndPoint> finishSocket
-				, EventListenerBase listener)
+				, EventListenerBase owner)
 			{
 				_db = db;
-				_listener = listener;
+				_listener = owner;
 				_anyEP = (listenEP.AddressFamily == AddressFamily.InterNetworkV6)
 					? new IPEndPoint(IPAddress.IPv6Any, 0)
 					: new IPEndPoint(IPAddress.Any, 0);
@@ -405,7 +674,7 @@
 
 			internal void Stop()
 			{
-				_listenerState.TrySetState(ListenerState.StopSignaled, ListenerState.Active, () =>
+				_listenerState.TryTransition(ListenerState.StopSignaled, ListenerState.Active, () =>
 				{
 					while (Thread.VolatileRead(ref _deserializers) > 0)
 					{
@@ -435,7 +704,17 @@
 					ReceiveCapture input;
 					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _receiveQueue.Dequeue(out input))
 					{
-						PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
+						GarbageHandlingVote handling = _listener.GetTrafficStrategyForEndpoint(input.RemoteEndPoint);
+						if (handling == GarbageHandlingVote.None)
+						{
+							PerformEventDeserializationAndQueueForNotification(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
+						}
+						else if (handling == GarbageHandlingVote.TreatTrafficFromEndpointAsGarbage)
+						{
+							_listener.HandleGarbageData(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
+						}
+						// Otherwise the handling was GarbageHandlingStrategy.FailfastForTrafficOnEndpoint
+						// and we're going to ignore it altogether.
 					}
 				}
 				finally
@@ -484,10 +763,10 @@
 							if (op.SocketError == SocketError.Success)
 							{
 								// Reschedule the receiver before pulling the buffer out, we want to catch receives
-								// in the tightest loop possible, although we don't want to keep a threadpool thread 
-								// *forever* and possibly cause thread-starvation in for other jobs so we continually 
-								// put the job back in the queue - this way our parallelism plays nicely with other 
-								// jobs - now, if only the other jobs were programmed to give up their threads periodically 
+								// in the tightest loop possible, although we don't want to keep a threadpool thread
+								// *forever* and possibly cause thread-starvation in for other jobs so we continually
+								// put the job back in the queue - this way our parallelism plays nicely with other
+								// jobs - now, if only the other jobs were programmed to give up their threads periodically
 								// too... hmmm!
 								ThreadPool.QueueUserWorkItem(new WaitCallback(Background_ParallelReceiver));
 								if (op.BytesTransferred > 0)
@@ -516,7 +795,7 @@
 
 			private void CascadeStopSignal()
 			{
-				_listenerState.TrySetState(ListenerState.Stopping, ListenerState.StopSignaled, () =>
+				_listenerState.TryTransition(ListenerState.Stopping, ListenerState.StopSignaled, () =>
 				{
 					while (Thread.VolatileRead(ref _deserializers) > 0)
 					{
@@ -577,7 +856,7 @@
 			private void ParallelReceiver()
 			{
 				// Only startup once.
-				if (_listenerState.TrySetState(ListenerState.Active, ListenerState.Unknown))
+				if (_listenerState.TryTransition(ListenerState.Active, ListenerState.Unknown))
 				{
 					Background_ParallelReceiver(null);
 				}
@@ -585,13 +864,13 @@
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep
 				, byte[] buffer
-				, int p, int bytes)
+				, int offset, int bytesTransferred)
 			{
 				IPEndPoint ep = (IPEndPoint)rcep;
 				try
 				{
 					// For received events, set MetaEventInfo.ReciptTime, MetaEventInfo.SenderIP, and MetaEventInfo.SenderPort...
-					Event ev = Event.BinaryDecode(_db, buffer, 0, bytes)
+					Event ev = Event.BinaryDecode(_db, buffer, offset, bytesTransferred)
 						.SetValue(Constants.MetaEventInfoAttributes.ReceiptTime.Name, Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow))
 						.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address)
 						.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
@@ -599,10 +878,7 @@
 				}
 				catch (BadLwesDataException)
 				{
-					byte[] copy = new byte[bytes];
-					Array.Copy(buffer, copy, bytes);
-					GarbageHandlingStrategy strategy = _listener.PerformGarbageArrival(rcep, 0, copy);
-					// TODO: Implement the garbage handling strategies
+					_listener.HandleGarbageData(rcep, buffer, offset, bytesTransferred);
 				}
 
 				BufferManager.ReleaseBuffer(buffer);
@@ -638,6 +914,213 @@
 			#endregion Nested Types
 		}
 
+		class RegistrationKey : IEventSinkRegistrationKey
+		{
+			#region Fields
+
+			Status<EventSinkStatus> _status = new Status<EventSinkStatus>(EventSinkStatus.Suspended);
+			bool _disableGarbageNotification;
+			bool _threadSafe;
+
+			#endregion Fields
+
+			#region Constructors
+
+			public RegistrationKey(EventListenerBase listener, IEventSink sink)
+			{
+				Listener = listener;
+				Sink = sink;
+				_threadSafe = sink.IsThreadSafe;
+			}
+
+			#endregion Constructors
+
+			#region Properties
+
+			public object Handback
+			{
+				get;
+				set;
+			}
+
+			public IEventListener Listener
+			{
+				get;
+				private set;
+			}
+
+			public IEventSink Sink
+			{
+				get;
+				private set;
+			}
+
+			public EventSinkStatus Status
+			{
+				get { return _status.CurrentState; }
+			}
+
+			#endregion Properties
+
+			#region Methods
+
+			public bool Activate()
+			{
+				return _status.SetStateIfLessThan(EventSinkStatus.Active, EventSinkStatus.Canceled);
+			}
+
+			public void Cancel()
+			{
+				_status.SetState(EventSinkStatus.Canceled);
+			}
+
+			public bool Suspend()
+			{
+				return _status.SetStateIfLessThan(EventSinkStatus.Suspended, EventSinkStatus.Canceled);
+			}
+
+			internal bool PerformEventArrival(Event ev, Action<RegistrationKey, Exception> errorHandler)
+			{
+				if (!_threadSafe)
+				{
+					if (_status.SpinToggleState(EventSinkStatus.Notifying, EventSinkStatus.Active))
+					{
+						try
+						{
+							Sink.HandleEventArrival(this, ev);
+							_status.TryTransition(EventSinkStatus.Active, EventSinkStatus.Notifying);
+						}
+						catch (Exception e)
+						{
+							errorHandler(this, e);
+						}
+					}
+				}
+				else
+				{
+					try
+					{
+						EventSinkStatus s = _status.CompareExchange(EventSinkStatus.Notifying, EventSinkStatus.Active);
+						if (s == EventSinkStatus.Active || s == EventSinkStatus.Notifying)
+						{
+							Sink.HandleEventArrival(this, ev);
+							_status.TryTransition(EventSinkStatus.Active, EventSinkStatus.Notifying);
+						}
+					}
+					catch (Exception e)
+					{
+						errorHandler(this, e);						
+					}
+				}
+				return _status.CurrentState == EventSinkStatus.Canceled;
+			}
+
+			internal GarbageHandlingVote PerformGarbageArrival(EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage,
+				Action<RegistrationKey, Exception> errorHandler)
+			{
+				Thread.MemoryBarrier();
+				bool ignoring = _disableGarbageNotification;
+
+				GarbageHandlingVote strategy = GarbageHandlingVote.None;
+				if (!ignoring)
+				{
+					if (!_threadSafe)
+					{
+						if (_status.SpinToggleState(EventSinkStatus.Active, EventSinkStatus.Notifying))
+						{
+							try
+							{
+								strategy = Sink.HandleGarbageData(this, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
+							}
+							catch (Exception e)
+							{
+								errorHandler(this, e);
+							}
+							_status.TryTransition(EventSinkStatus.Active, EventSinkStatus.Notifying);
+						}
+					}
+					else
+					{
+						try
+						{
+							if (_status.TryTransition(EventSinkStatus.Notifying, EventSinkStatus.Active))
+							{
+								strategy = Sink.HandleGarbageData(this, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
+								_status.TryTransition(EventSinkStatus.Active, EventSinkStatus.Notifying);
+							}
+						}
+						catch (Exception e)
+						{
+							errorHandler(this, e);
+						}
+					}
+				}
+				return strategy;
+			}
+
+			public void DisableGarbageNotification()
+			{
+				Thread.MemoryBarrier();
+				_disableGarbageNotification = true;
+				Thread.MemoryBarrier();
+			}
+
+			#endregion
+		}
+
+		class TrafficTrackingRec
+		{
+			#region Fields
+
+			int _garbageCount = 0;
+
+			#endregion Fields
+
+			#region Constructors
+
+			public TrafficTrackingRec(EndPoint ep)
+			{
+				RemoteEndPoint = ep;
+			}
+
+			#endregion Constructors
+
+			#region Properties
+
+			public bool IsEmpty
+			{
+				get { return RemoteEndPoint == null; }
+			}
+
+			public int PreviousGargageDataCount
+			{
+				get { return _garbageCount; }
+			}
+
+			public EndPoint RemoteEndPoint
+			{
+				get;
+				private set;
+			}
+
+			public GarbageHandlingVote Strategy
+			{
+				get;
+				set;
+			}
+
+			#endregion Properties
+
+			#region Methods
+
+			public int IncrementGarbageCount()
+			{
+				return Interlocked.Increment(ref _garbageCount);
+			}
+
+			#endregion Methods
+		}
+
 		#endregion Nested Types
 
 		#region Other
@@ -648,267 +1131,19 @@
 
 		#region IEventListener Members
 
-		class RegistrationKey : IEventSinkRegistrationKey
+		/// <summary>
+		/// Registers an event sink and activates it.
+		/// </summary>
+		/// <param name="sink">the event sink to register</param>
+		/// <param name="handback">a handback object - this object is opaque to the listener
+		/// and will be attached to the registration key prior to activation</param>
+		/// <returns>A registration key for the event sink.</returns>
+		public IEventSinkRegistrationKey RegisterAndActivateEventSink(IEventSink sink, object handback)
 		{
-			Status<EventSinkStatus> _status = new Status<EventSinkStatus>(EventSinkStatus.Suspended);
-			bool _threadSafe;
-
-			public RegistrationKey(EventListenerBase listener, IEventSink sink)
-			{
-				Listener = listener;
-				Sink = sink;
-				_threadSafe = sink.IsThreadSafe;
-			}
-
-			public IEventListener Listener { get; private set; }
-			public IEventSink Sink { get; private set; }
-
-			public EventSinkStatus Status
-			{
-				get { return _status.CurrentState; }
-			}
-
-			public bool Activate()
-			{
-				return _status.SetStateIfLessThan(EventSinkStatus.Active, EventSinkStatus.Canceled);
-			}
-
-			public bool Suspend()
-			{
-				return _status.SetStateIfLessThan(EventSinkStatus.Suspended, EventSinkStatus.Canceled);
-			}
-
-			public void Cancel()
-			{
-				_status.SetState(EventSinkStatus.Canceled);
-			}
-
-			public object Handback { get; set; }
-
-
-			internal bool PerformEventArrival(Event ev)
-			{
-				if (!_threadSafe)
-				{
-					if (_status.SpinToggleState(EventSinkStatus.Active, EventSinkStatus.Notifying))
-					{
-						try
-						{
-							Sink.HandleEventArrival(this, ev);
-						}
-						catch (Exception e)
-						{
-							// TODO: Trace the exception
-						}
-						_status.TrySetState(EventSinkStatus.Active, EventSinkStatus.Notifying);
-					}
-				}
-				else
-				{
-					try
-					{
-						if (_status.TrySetState(EventSinkStatus.Notifying, EventSinkStatus.Active))
-						{
-							Sink.HandleEventArrival(this, ev);
-							_status.TrySetState(EventSinkStatus.Active, EventSinkStatus.Notifying);
-						}
-					}
-					catch (Exception e)
-					{
-						// TODO: Trace the exception
-					}
-				}
-				_status.TrySetState(EventSinkStatus.Active, EventSinkStatus.Notifying);
-				return _status.CurrentState == EventSinkStatus.Canceled;
-			}
-
-			internal GarbageHandlingStrategy PerformGarbageArrival(EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
-			{
-				GarbageHandlingStrategy strategy = GarbageHandlingStrategy.None;
-				if (!_threadSafe)
-				{
-					if (_status.SpinToggleState(EventSinkStatus.Active, EventSinkStatus.Notifying))
-					{
-						try
-						{
-							strategy = Sink.HandleGarbageArrival(this, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
-						}
-						catch (Exception e)
-						{
-							// TODO: Trace the exception
-						}
-						_status.TrySetState(EventSinkStatus.Active, EventSinkStatus.Notifying);
-					}
-				}
-				else
-				{
-					try
-					{
-						if (_status.TrySetState(EventSinkStatus.Notifying, EventSinkStatus.Active))
-						{
-							strategy = Sink.HandleGarbageArrival(this, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
-							_status.TrySetState(EventSinkStatus.Active, EventSinkStatus.Notifying);
-						}
-					}
-					catch (Exception e)
-					{
-						// TODO: Trace the exception
-					}
-				}
-				return strategy;
-			}
-		}
-
-		public IEventSinkRegistrationKey RegisterEventSink(IEventSink sink)
-		{
-			if (sink == null) throw new ArgumentNullException("sink");
-			RegistrationKey key = new RegistrationKey(this, sink);
-			AddRegistration(key);
+			IEventSinkRegistrationKey key = RegisterEventSink(sink);
+			key.Handback = handback;
+			key.Activate();
 			return key;
-		}
-
-		private void AddRegistration(RegistrationKey key)
-		{
-			int n = Interlocked.Increment(ref _notifiers);
-
-			try
-			{
-				if (n == Leader)
-				{					
-					if (_notifications.TryEnterWriteLock(20))
-					{
-						try
-						{
-							lock (_additions)
-							{
-								_additions.Add(key);
-								UnsafeConsolidateRegistrations();
-							}
-							return;				
-						}
-						finally
-						{
-							_notifications.ExitWriteLock();
-						}
-					}
-				}
-
-				// We couldn't get the writelock so we're gonna have to schedule
-				// the key to be added later...
-				lock (_additions)
-				{
-					_additions.Add(key);
-					Interlocked.Increment(ref _consolidationVotes);
-				}
-			}
-			finally
-			{
-				Interlocked.Decrement(ref _notifiers);
-			}
-		}
-
-		const int Leader = 1;
-		int _notifiers = 0;
-		int _consolidationVotes = 0;
-		ReaderWriterLockSlim _notifications = new ReaderWriterLockSlim();
-		List<RegistrationKey> _additions = new List<RegistrationKey>();
-		RegistrationKey[] _registrations = new RegistrationKey[0];
-
-		internal void PerformEventArrival(Event ev)
-		{
-			int n = Interlocked.Increment(ref _notifiers);
-			try
-			{
-				if (n == Leader) _notifications.EnterUpgradeableReadLock();
-				else _notifications.EnterReadLock();
-				try
-				{
-					foreach (var r in _registrations)
-					{
-						if (r.PerformEventArrival(ev))
-						{
-							Interlocked.Increment(ref _consolidationVotes);
-						}
-					}
-					if (n == Leader && Thread.VolatileRead(ref _consolidationVotes) > 0)
-					{
-						SafeConsolidateRegistrations();
-					}
-				}
-				finally
-				{
-					if (n == Leader) _notifications.ExitUpgradeableReadLock();
-					else _notifications.ExitReadLock();
-				}
-			}
-			finally
-			{
-				Interlocked.Decrement(ref _notifiers);
-			}
-		}
-
-		internal GarbageHandlingStrategy PerformGarbageArrival(EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
-		{
-			GarbageHandlingStrategy strategy = GarbageHandlingStrategy.None;
-			int n = Interlocked.Increment(ref _notifiers);
-			try
-			{
-				if (n == Leader) _notifications.EnterUpgradeableReadLock();
-				else _notifications.EnterReadLock();
-				try
-				{
-					foreach (var r in _registrations)
-					{
-						GarbageHandlingStrategy strategyVote = r.PerformGarbageArrival(remoteEndPoint, priorGarbageCountForEndpoint, garbage);
-						if (strategyVote > strategy)
-						{
-							strategy = strategyVote;
-						}
-					}
-					if (n == Leader && Thread.VolatileRead(ref _consolidationVotes) > 0)
-					{
-						SafeConsolidateRegistrations();
-					}
-				}
-				finally
-				{
-					if (n == Leader) _notifications.ExitUpgradeableReadLock();
-					else _notifications.ExitReadLock();
-				}
-			}
-			finally
-			{
-				Interlocked.Decrement(ref _notifiers);
-			}
-			return strategy;
-		}
-
-		private void SafeConsolidateRegistrations()
-		{
-			_notifications.EnterWriteLock();
-			try
-			{
-				lock (_additions)
-				{
-					UnsafeConsolidateRegistrations();
-				}
-			}
-			finally
-			{
-				_notifications.ExitWriteLock();
-			}
-		}
-
-		private void UnsafeConsolidateRegistrations()
-		{
-			_registrations = (from r in _registrations
-												where r.Status != EventSinkStatus.Canceled
-												select r).Concat(from r in _additions
-																				 where r.Status != EventSinkStatus.Canceled
-																				 select r).ToArray();
-			_additions.Clear();
-
-			Thread.VolatileWrite(ref _consolidationVotes, 0);
 		}
 
 		#endregion

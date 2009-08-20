@@ -134,6 +134,29 @@
 		}
 
 		/// <summary>
+		/// Toggles between the toggle state and the desired state - with
+		/// a spin-wait if necessary.
+		/// </summary>
+		/// <param name="desired">desired state</param>
+		/// <param name="toggle">state from which the desired state can toggle</param>
+		/// <returns><em>true</em> if the state transitions to the desired state from the toggle state; otherwise <em>false</em></returns>
+		public bool SpinToggleState(E desired, E toggle)
+		{
+			int d = Convert.ToInt32(desired);
+			int t = Convert.ToInt32(toggle);
+
+		spin:
+			int r = Interlocked.CompareExchange(ref _status, d, t);
+			// If the state was the toggle state then we're successful and done...
+			if (r == t) return true;
+			// otherwise if the result is anything but the desired state we're
+			// unsuccessful and done...
+			if (r != d) return false;
+			// otherwise we spin
+			goto spin;
+		}
+
+		/// <summary>
 		/// Perfroms a spinwait until the current state equals the target state.
 		/// </summary>
 		/// <param name="targetState">the target state</param>
@@ -153,7 +176,7 @@
 		/// <param name="value">the target state</param>
 		/// <param name="comparand">comparand state must match current state</param>
 		/// <returns><em>true</em> if the current state matches <paramref name="comparand"/> and the state is transitioned to <paramref name="value"/>; otherwise <em>false</em></returns>
-		public bool TrySetState(E value, E comparand)
+		public bool TryTransition(E value, E comparand)
 		{
 			int c = Convert.ToInt32(comparand);
 			return Interlocked.CompareExchange(ref _status, Convert.ToInt32(value), c) == c;
@@ -166,10 +189,10 @@
 		/// <param name="comparand">comparand state must match current state</param>
 		/// <param name="actionOnSuccess">action to perform if the state transition is successful</param>
 		/// <returns><em>true</em> if the current state matches <paramref name="comparand"/> and the state is transitioned to <paramref name="value"/>; otherwise <em>false</em></returns>
-		public bool TrySetState(E value, E comparand, Action actionOnSuccess)
+		public bool TryTransition(E value, E comparand, Action actionOnSuccess)
 		{
 			if (actionOnSuccess == null) throw new ArgumentNullException("actionOnSuccess");
-			if (TrySetState(value, comparand))
+			if (TryTransition(value, comparand))
 			{
 				actionOnSuccess();
 				return true;
@@ -179,17 +202,11 @@
 
 		#endregion Methods
 
-		public bool SpinToggleState(E value, E toggle)
+		internal E CompareExchange(E value, E comparand)
 		{
-			int c = Convert.ToInt32(toggle);
-			int v = Convert.ToInt32(value);
-			while (true)
-			{
-				int r = Interlocked.CompareExchange(ref _status, c, v);
-				if (r == v) return true;
-				if (r != c) return false;
-				Thread.SpinWait(1000);
-			}
+			return
+				(E)Enum.ToObject(typeof(E), Interlocked.CompareExchange(ref _status, Convert.ToInt32(value), Convert.ToInt32(comparand)));
+				;
 		}
 	}
 }

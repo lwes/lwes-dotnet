@@ -24,14 +24,16 @@
 		/// <param name="address"></param>
 		/// <param name="port"></param>
 		/// <param name="parallel"></param>
+		/// <param name="garbageHandling"></param>
 		public void Initialize(IEventTemplateDB db
 			, IPAddress address
 			, int port
-			, bool parallel)
+			, bool parallel
+			, ListenerGarbageHandling garbageHandling)
 		{
 			if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
 
-			base.Initialize(db, new IPEndPoint(address, port), parallel,
+			base.Initialize(db, new IPEndPoint(address, port), parallel, garbageHandling,
 				(s, e) =>
 				{
 					s.SetSocketOption(SocketOptionLevel.Udp, SocketOptionName.NoDelay, 1);

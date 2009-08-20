@@ -6,6 +6,7 @@
 	using System.Linq;
 	using System.Net;
 	using System.Text;
+	using Org.Lwes.Listener;
 
 	/// <summary>
 	/// Configuration section for a listener.
@@ -38,6 +39,11 @@
 		/// Property name for whether the listener uses multicast.
 		/// </summary>
 		public const string PropertyName_useMulticast = "multicast";
+
+		/// <summary>
+		/// Property name for garbage handling.
+		/// </summary>
+		public const string PropertyName_garbageHandling = "garbageHandling";
 
 		#endregion Fields
 
@@ -101,6 +107,24 @@
 			set
 			{
 				this[PropertyName_useMulticast] = value;
+			}
+		}
+
+		/// <summary>
+		/// Indicates whether the listener listens on a multicast port.
+		/// </summary>
+		[ConfigurationProperty(PropertyName_garbageHandling
+			, IsRequired = false
+			, DefaultValue = ListenerGarbageHandling.FailSilently)]
+		public ListenerGarbageHandling GarbageHandling
+		{
+			get
+			{
+				return (ListenerGarbageHandling)this[PropertyName_garbageHandling];
+			}
+			set
+			{
+				this[PropertyName_garbageHandling] = value;
 			}
 		}
 

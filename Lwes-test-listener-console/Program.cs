@@ -14,7 +14,7 @@
 		#region Methods
 
 		static void Main(string[] args)
-		{			
+		{
 			using (IEventListener listener = EventListener.CreateDefault())
 			{
 				EventSink sink = new EventSink();
@@ -76,32 +76,47 @@
 			}
 		}
 
+		#endregion Methods
+
+		#region Nested Types
+
 		class EventSink : IEventSink
 		{
+			#region Fields
+
 			SimpleLockFreeQueue<Event> _incomingEvents = new SimpleLockFreeQueue<Event>();
-			#region IEventSink Members
+
+			#endregion Fields
+
+			#region Properties
+
+			public SimpleLockFreeQueue<Event> Events
+			{
+				get { return _incomingEvents; }
+			}
 
 			public bool IsThreadSafe
 			{
 				get { return false; }
 			}
 
+			#endregion Properties
+
+			#region Methods
+
 			public void HandleEventArrival(IEventSinkRegistrationKey key, Event ev)
 			{
 				_incomingEvents.Enqueue(ev);
 			}
 
-			public GarbageHandlingStrategy HandleGarbageArrival(IEventSinkRegistrationKey key, System.Net.EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
+			public GarbageHandlingVote HandleGarbageData(IEventSinkRegistrationKey key, System.Net.EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
 			{
-				return GarbageHandlingStrategy.FailfastForTrafficOnEndpoint;
+				return GarbageHandlingVote.IgnoreAllTrafficFromEndpoint;
 			}
 
-			#endregion
-
-			public SimpleLockFreeQueue<Event> Events { get { return _incomingEvents; } }
+			#endregion Methods
 		}
 
-
-		#endregion Methods
+		#endregion Nested Types
 	}
 }

@@ -24,14 +24,16 @@
 		/// <param name="multicastAddress"></param>
 		/// <param name="multicastPort"></param>
 		/// <param name="parallel"></param>
+		/// <param name="garbageHandling"></param>
 		public void Initialize(IEventTemplateDB db
 			, IPAddress multicastAddress
 			, int multicastPort
-			, bool parallel)
+			, bool parallel
+			, ListenerGarbageHandling garbageHandling)
 		{
 			if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
 
-			base.Initialize(db, new IPEndPoint(multicastAddress, multicastPort), parallel,
+			base.Initialize(db, new IPEndPoint(multicastAddress, multicastPort), parallel, garbageHandling,
 				(s, e) =>
 				{
 					s.SetSocketOption(SocketOptionLevel.Udp, SocketOptionName.NoDelay, 1);

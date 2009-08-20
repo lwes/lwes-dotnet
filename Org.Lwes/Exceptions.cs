@@ -29,6 +29,36 @@
 	}
 
 	/// <summary>
+	/// Exception thrown when bad data is encountered during serialization.
+	/// </summary>
+	[Serializable]
+	public class BadLwesDataException : EventSystemException
+	{
+		#region Constructors
+
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
+		/// <param name="errorMessage">error message</param>
+		public BadLwesDataException(string errorMessage)
+			: base(errorMessage)
+		{
+		}
+
+		/// <summary>
+		/// Creates a new instance from serialization.
+		/// </summary>
+		/// <param name="info"></param>
+		/// <param name="context"></param>
+		public BadLwesDataException(SerializationInfo info, StreamingContext context)
+			: base(info, context)
+		{
+		}
+
+		#endregion Constructors
+	}
+
+	/// <summary>
 	/// Base class for exceptions thrown by the event system.
 	/// </summary>
 	[Serializable]
@@ -127,35 +157,4 @@
 
 		#endregion Constructors
 	}
-
-	/// <summary>
-	/// Exception thrown when bad data is encountered during serialization.
-	/// </summary>
-	[Serializable]
-	public class BadLwesDataException : EventSystemException
-	{
-		#region Constructors
-
-		/// <summary>
-		/// Creates a new instance.
-		/// </summary>
-		/// <param name="errorMessage">error message</param>
-		public BadLwesDataException(string errorMessage)
-			: base(errorMessage)
-		{
-		}
-
-		/// <summary>
-		/// Creates a new instance from serialization.
-		/// </summary>
-		/// <param name="info"></param>
-		/// <param name="context"></param>
-		public BadLwesDataException(SerializationInfo info, StreamingContext context)
-			: base(info, context)
-		{
-		}
-
-		#endregion Constructors
-	}
-
 }

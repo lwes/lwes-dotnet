@@ -2,9 +2,9 @@
 {
 	using System;
 	using System.Net;
+	using System.Text;
 
 	using Org.Lwes.ESF;
-	using System.Text;
 
 	/// <summary>
 	/// Utility class.

@@ -6,14 +6,14 @@
 
 	using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+	using Moq;
+
 	using Org.Lwes.Emitter;
 	using Org.Lwes.Listener;
-	using Moq;
 
 	[TestClass]
 	public class EventListenerTests
 	{
-		
 		#region Methods
 
 		[TestMethod]
@@ -32,7 +32,7 @@
 			};
 			bool done = false;
 			Event receivedEvent = default(Event);
-			
+
 			// Mock an IEventSink that records the incomming event...
 			Mock<IEventSink> mock = new Mock<IEventSink>();
 			mock.SetupGet(sink => sink.IsThreadSafe).Returns(true);
@@ -75,7 +75,6 @@
 			Console.Write(receivedEvent.ToString());
 		}
 
-		
 		#endregion Methods
 	}
 }

@@ -9,8 +9,6 @@
 	/// </summary>
 	public interface IEventFactory
 	{
-		#region Properties
-
 		/// <summary>
 		/// The character encoding used when performing event IO.
 		/// </summary>
@@ -43,10 +41,6 @@
 		{
 			get;
 		}
-
-		#endregion Properties
-
-		#region Methods
 
 		/// <summary>
 		/// Creates an event type identified by the event name.
@@ -87,7 +81,5 @@
 		/// <param name="performValidation">Indicates whether validation should occur by default</param>
 		/// <param name="db">event template database</param>
 		void Initialize(SupportedEncoding enc, bool performValidation, IEventTemplateDB db);
-
-		#endregion Methods
 	}
 }

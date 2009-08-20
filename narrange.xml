@@ -84,7 +84,7 @@
                   <Elements />
                   <Elements />
                 </ElementRef>
-                <Region Name="Events">
+                <Region DirectivesEnabled="false" Name="Events">
                   <Elements>
                     <Region DirectivesEnabled="false" Name="Interface Events">
                       <Elements>
@@ -106,7 +106,7 @@
                     </Region>
                   </Elements>
                 </Region>
-                <Region Name="Properties">
+                <Region DirectivesEnabled="false" Name="Properties">
                   <Elements>
                     <Region DirectivesEnabled="false" Name="Interface Properties">
                       <Elements>
@@ -128,7 +128,7 @@
                     </Region>
                   </Elements>
                 </Region>
-                <Region Name="Methods">
+                <Region DirectivesEnabled="false" Name="Methods">
                   <Elements>
                     <Region DirectivesEnabled="false" Name="Interface Methods">
                       <Elements>
@@ -150,7 +150,7 @@
                     </Region>
                   </Elements>
                 </Region>
-                <Region Name="Other">
+                <Region DirectivesEnabled="false" Name="Other">
                   <Elements>
                     <Element Type="NotSpecified">
                       <Elements />
@@ -172,7 +172,7 @@
                   <Elements />
                   <Elements />
                 </ElementRef>
-                <Region DirectivesEnabled="false" Name="Fixed Fields">
+                <Region Name="Fixed Fields">
                   <Elements>
                     <Element Type="Field">
                       <Elements />

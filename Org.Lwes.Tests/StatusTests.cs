@@ -76,12 +76,12 @@
 						Interlocked.Increment(ref onThreadsStarted);
 						while (state.IsLessThan(TestStates.ShutdownSignaled))
 						{
-							state.TrySetState(TestStates.On, TestStates.Undecided, () =>
+							state.TryTransition(TestStates.On, TestStates.Undecided, () =>
 								{
 									Interlocked.Increment(ref transitionsOn);
 								});
 						}
-						state.TrySetState(TestStates.OnStateDone, TestStates.ShutdownSignaled, () =>
+						state.TryTransition(TestStates.OnStateDone, TestStates.ShutdownSignaled, () =>
 							{
 								Interlocked.Increment(ref transitionsOnStateDone);
 							});
@@ -95,12 +95,12 @@
 
 						while(state.IsLessThan(TestStates.OnStateDone))
 						{
-							state.TrySetState(TestStates.Off, TestStates.On, () =>
+							state.TryTransition(TestStates.Off, TestStates.On, () =>
 								{
 									Interlocked.Increment(ref transitionsOff);
 								});
 						}
-						state.TrySetState(TestStates.OffStateDone, TestStates.OnStateDone, () =>
+						state.TryTransition(TestStates.OffStateDone, TestStates.OnStateDone, () =>
 						{
 							Interlocked.Increment(ref transitionsOffStateDone);
 						});
@@ -114,13 +114,13 @@
 
 					while (state.IsLessThan(TestStates.OffStateDone))
 					{
-						state.TrySetState(TestStates.Undecided, TestStates.Off, () =>
+						state.TryTransition(TestStates.Undecided, TestStates.Off, () =>
 						{
 							Interlocked.Increment(ref transitionsUndecided);
 						});
 					}
 
-					state.TrySetState(TestStates.Done, TestStates.OffStateDone, () =>
+					state.TryTransition(TestStates.Done, TestStates.OffStateDone, () =>
 					{
 						Interlocked.Increment(ref transitionsDone);
 					});

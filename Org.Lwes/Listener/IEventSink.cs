@@ -1,78 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net;
-
-namespace Org.Lwes.Listener
+﻿namespace Org.Lwes.Listener
 {
+	using System;
+	using System.Net;
+
 	/// <summary>
-	/// Strategies to be taken when garbage data arrives from an endpoint.
+	/// Interface for event sinks that handle events and data received by the event listeners.
 	/// </summary>
-	public enum GarbageHandlingStrategy
-	{
-		/// <summary>
-		/// No opinion on garbage handling.
-		/// </summary>
-		None,
-		/// <summary>
-		/// Continue handling traffic from the endpoint as if no garbage
-		/// has arrived.
-		/// </summary>
-		ContinueNormalHandlingForEndpoint,
-		/// <summary>
-		/// Treats all traffic from the endpoint as garbage without trying to
-		/// deserialize the data.
-		/// </summary>
-		TreatAllTrafficFromEndpointAsGarbage,
-		/// <summary>
-		/// Causes any data received from the endpoint to be discarded as soon
-		/// as possible.
-		/// </summary>
-		FailfastForTrafficOnEndpoint,
-		/// <summary>
-		/// The default strategy. Same as FailfastForTrafficOnEndpoint
-		/// </summary>
-		Default = None
-	}
-	/// <summary>
-	/// Represents the state of an event sink.
-	/// </summary>
-	public enum EventSinkStatus
-	{
-		/// <summary>
-		/// Indicates the event sink has been suspended and should not receive
-		/// events until activated. This is the initial state for new IEventSinkRegistrationKeys.
-		/// </summary>
-		Suspended = 0,		
-		/// <summary>
-		/// Indicates the event sink is active and may be notified of events
-		/// at any time.
-		/// </summary>
-		Active = 1,
-		/// <summary>
-		/// For event sinks that are not thread-safe, indicates that the sink
-		/// is currently being invoked.
-		/// </summary>
-		Notifying = 2,
-		/// <summary>
-		/// Indicates the event sink has been canceled.
-		/// </summary>
-		Canceled = 3
-	}
-	public interface IEventSinkRegistrationKey
-	{
-		IEventListener Listener { get; }
-		EventSinkStatus Status { get; }
-		bool Activate();
-		bool Suspend();
-		void Cancel();
-		Object Handback { get; set; }
-	}
 	public interface IEventSink
 	{
-		bool IsThreadSafe { get; }
+		/// <summary>
+		/// Indicates whether the event sink is thread-safe.
+		/// </summary>
+		/// <remarks>A sink is thread-safe if BOTH HandleEventArrival and HandleGarbageData
+		/// can be called multiple times concurrently without failure.</remarks>
+		bool IsThreadSafe
+		{
+			get;
+		}
+
+		/// <summary>
+		/// Callback method invoked by event listeners when LWES events arrive.
+		/// </summary>
+		/// <param name="key">Registration key for controlling the registration and status of
+		/// an event sink</param>
+		/// <param name="ev">a newly arrived LWES event</param>
 		void HandleEventArrival(IEventSinkRegistrationKey key, Event ev);
-		GarbageHandlingStrategy HandleGarbageArrival(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage);
+
+		/// <summary>
+		/// Callback method invoked by event listeners when garbage data arrives on an endpoint.
+		/// </summary>
+		/// <param name="key">Registration key for controlling the registration and status of
+		/// an event sink</param>
+		/// <param name="remoteEndPoint">endpoint that sent the garbage data</param>
+		/// <param name="priorGarbageCountForEndpoint">number of times garbage data has arrived from the
+		/// endpoint</param>
+		/// <param name="garbage">byte array containing the garbage</param>
+		/// <returns>a vote as to how future traffic from the endpoint should be handled</returns>
+		GarbageHandlingVote HandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage);
 	}
+
 }

@@ -540,7 +540,7 @@
 			#endif
 			int ofs = offset;
 			int count = ReadUInt16(buffer, ref ofs);
-			if (ofs + count > buffer.Length) 
+			if (ofs + count > buffer.Length)
 				throw new BadLwesDataException(String.Concat("Cannot deserialize incoming string at offset ", ofs));
 			char[] result = new char[count];
 			int bytesUsed;

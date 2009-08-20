@@ -80,10 +80,12 @@
     <Compile Include="IoCAdapter.cs" />
     <Compile Include="Journaler\IJournaler.cs" />
     <Compile Include="Journaler\JournalerBase.cs" />
+    <Compile Include="Listener\Enums.cs" />
     <Compile Include="Listener\EventListener.cs" />
     <Compile Include="Listener\IEventListener.cs" />
     <Compile Include="Listener\EventListenerBase.cs" />
     <Compile Include="Listener\IEventSink.cs" />
+    <Compile Include="Listener\IEventSinkRegistrationKey.cs" />
     <Compile Include="Listener\MulticastEventListener.cs" />
     <Compile Include="Listener\UnicastEventListener.cs" />
     <Compile Include="LwesTraceListener.cs" />

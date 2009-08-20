@@ -11,8 +11,6 @@
 	/// </summary>
 	public interface IEventAttribute
 	{
-		#region Properties
-
 		/// <summary>
 		/// Indicates the attribute's value equals the default value for the attribute.
 		/// </summary>
@@ -36,10 +34,6 @@
 		{
 			get;
 		}
-
-		#endregion Properties
-
-		#region Methods
 
 		/// <summary>
 		/// Used by the LWES event system during serialization. Encodes
@@ -204,20 +198,14 @@
 		/// <param name="value">reference to a variable that will hold the value upon success</param>
 		/// <returns><em>true</em> if the value is retrieved; otherwise <em>false</em></returns>
 		bool TryGetValue(out bool value);
-
-		#endregion Methods
 	}
 
 	internal interface IEventAttribute<T> : IEventAttribute
 	{
-		#region Properties
-
 		T Value
 		{
 			get;
 		}
-
-		#endregion Properties
 	}
 
 	/// <summary>

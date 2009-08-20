@@ -67,7 +67,8 @@
 				mee.Initialize(EventTemplateDB.CreateDefault(),
 					IPAddress.Parse(namedListenerConfig.AddressString),
 					namedListenerConfig.Port,
-					namedListenerConfig.UseParallelEmit);
+					namedListenerConfig.UseParallelEmit,
+					namedListenerConfig.GarbageHandling);
 				return mee;
 			}
 			else
@@ -105,7 +106,8 @@
 			emitter.Initialize(EventTemplateDB.CreateDefault()
 				, Constants.DefaultMulticastAddress
 				, Constants.CDefaultMulticastPort
-				, true);
+				, true
+				, ListenerGarbageHandling.Default);
 			return emitter;
 		}
 

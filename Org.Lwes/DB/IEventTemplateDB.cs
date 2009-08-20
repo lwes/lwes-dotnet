@@ -12,8 +12,6 @@
 	/// </summary>
 	public interface IEventTemplateDB
 	{
-		#region Properties
-
 		/// <summary>
 		/// An enumerable containing the names of defined events.
 		/// </summary>
@@ -29,10 +27,6 @@
 		{
 			get;
 		}
-
-		#endregion Properties
-
-		#region Methods
 
 		/// <summary>
 		/// Gets the named event template.
@@ -84,7 +78,5 @@
 		/// <param name="template">reference to a variable that will contain the template upon success</param>
 		/// <returns><em>true</em> if the named event is retreived; otherwise <em>false</em></returns>
 		bool TryGetEventTemplate(string evName, out EventTemplate template);
-
-		#endregion Methods
 	}
 }
