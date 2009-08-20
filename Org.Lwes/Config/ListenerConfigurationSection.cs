@@ -6,6 +6,7 @@
 	using System.Linq;
 	using System.Net;
 	using System.Text;
+
 	using Org.Lwes.Listener;
 
 	/// <summary>
@@ -19,6 +20,11 @@
 		/// Property name for the address.
 		/// </summary>
 		public const string PropertyName_address = "address";
+
+		/// <summary>
+		/// Property name for garbage handling.
+		/// </summary>
+		public const string PropertyName_garbageHandling = "garbageHandling";
 
 		/// <summary>
 		/// Property name for the name.
@@ -40,11 +46,6 @@
 		/// </summary>
 		public const string PropertyName_useMulticast = "multicast";
 
-		/// <summary>
-		/// Property name for garbage handling.
-		/// </summary>
-		public const string PropertyName_garbageHandling = "garbageHandling";
-
 		#endregion Fields
 
 		#region Properties
@@ -61,6 +62,24 @@
 			set
 			{
 				this[PropertyName_address] = value;
+			}
+		}
+
+		/// <summary>
+		/// Indicates whether the listener listens on a multicast port.
+		/// </summary>
+		[ConfigurationProperty(PropertyName_garbageHandling
+			, IsRequired = false
+			, DefaultValue = ListenerGarbageHandling.FailSilently)]
+		public ListenerGarbageHandling GarbageHandling
+		{
+			get
+			{
+				return (ListenerGarbageHandling)this[PropertyName_garbageHandling];
+			}
+			set
+			{
+				this[PropertyName_garbageHandling] = value;
 			}
 		}
 
@@ -107,24 +126,6 @@
 			set
 			{
 				this[PropertyName_useMulticast] = value;
-			}
-		}
-
-		/// <summary>
-		/// Indicates whether the listener listens on a multicast port.
-		/// </summary>
-		[ConfigurationProperty(PropertyName_garbageHandling
-			, IsRequired = false
-			, DefaultValue = ListenerGarbageHandling.FailSilently)]
-		public ListenerGarbageHandling GarbageHandling
-		{
-			get
-			{
-				return (ListenerGarbageHandling)this[PropertyName_garbageHandling];
-			}
-			set
-			{
-				this[PropertyName_garbageHandling] = value;
 			}
 		}
 

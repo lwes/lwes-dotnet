@@ -21,6 +21,7 @@
 		const int Leader = 1;
 
 		List<RegistrationKey> _additions = new List<RegistrationKey>();
+		Action<RegistrationKey, Exception> _cacheHandleErrorsDelegate;
 		int _consolidationVotes = 0;
 		IEventTemplateDB _db;
 		IPEndPoint _endpoint;
@@ -37,19 +38,19 @@
 		#region Constructors
 
 		/// <summary>
-		/// Destructor ensuring dispose is called.
-		/// </summary>
-		~EventListenerBase()
-		{
-			Dispose(false);
-		}
-
-		/// <summary>
 		/// Creates a new instance.
 		/// </summary>
 		protected EventListenerBase()
 		{
 			_cacheHandleErrorsDelegate = new Action<RegistrationKey, Exception>(HandleErrorsOnEventSink);
+		}
+
+		/// <summary>
+		/// Destructor ensuring dispose is called.
+		/// </summary>
+		~EventListenerBase()
+		{
+			Dispose(false);
 		}
 
 		#endregion Constructors
@@ -105,6 +106,21 @@
 		}
 
 		/// <summary>
+		/// Registers an event sink and activates it.
+		/// </summary>
+		/// <param name="sink">the event sink to register</param>
+		/// <param name="handback">a handback object - this object is opaque to the listener
+		/// and will be attached to the registration key prior to activation</param>
+		/// <returns>A registration key for the event sink.</returns>
+		public IEventSinkRegistrationKey RegisterAndActivateEventSink(IEventSink sink, object handback)
+		{
+			IEventSinkRegistrationKey key = RegisterEventSink(sink);
+			key.Handback = handback;
+			key.Activate();
+			return key;
+		}
+
+		/// <summary>
 		/// Registers an event sink with the listener without activating the
 		/// event sink.
 		/// </summary>
@@ -118,12 +134,6 @@
 			return key;
 		}
 
-		private void HandleErrorsOnEventSink(RegistrationKey key, Exception e)
-		{
-			// TODO: Strategies for event sinks that cause exceptions.
-		}
-
-		Action<RegistrationKey, Exception> _cacheHandleErrorsDelegate;
 		internal void PerformEventArrival(Event ev)
 		{
 			int n = Interlocked.Increment(ref _notifiers);
@@ -170,8 +180,8 @@
 					foreach (var r in _registrations)
 					{
 						GarbageHandlingVote strategyVote = r.PerformGarbageArrival(
-							remoteEndPoint, 
-							priorGarbageCountForEndpoint, 
+							remoteEndPoint,
+							priorGarbageCountForEndpoint,
 							garbage,
 							_cacheHandleErrorsDelegate
 							);
@@ -314,10 +324,15 @@
 			}
 		}
 
+		private void HandleErrorsOnEventSink(RegistrationKey key, Exception e)
+		{
+			// TODO: Strategies for event sinks that cause exceptions.
+		}
+
 		private void HandleGarbageData(EndPoint ep, byte[] buffer, int offset, int bytesTransferred)
 		{
 			if (_garbageHandling > ListenerGarbageHandling.FailSilently)
-			{				
+			{
 				IPEndPoint ipep = (IPEndPoint)ep;
 				TrafficTrackingKey key = new TrafficTrackingKey(ep);
 				TrafficTrackingRec tracking;
@@ -329,7 +344,7 @@
 						_garbageTracking.Add(key, tracking);
 					}
 				}
-				if (_garbageHandling == ListenerGarbageHandling.AskEventSinksToVoteOnStrategy 
+				if (_garbageHandling == ListenerGarbageHandling.AskEventSinksToVoteOnStrategy
 					&& tracking.Strategy != GarbageHandlingVote.IgnoreAllTrafficFromEndpoint)
 				{
 					PerformGarbageDataNotification(tracking, ep, buffer, offset, bytesTransferred);
@@ -918,8 +933,8 @@
 		{
 			#region Fields
 
-			Status<EventSinkStatus> _status = new Status<EventSinkStatus>(EventSinkStatus.Suspended);
 			bool _disableGarbageNotification;
+			Status<EventSinkStatus> _status = new Status<EventSinkStatus>(EventSinkStatus.Suspended);
 			bool _threadSafe;
 
 			#endregion Fields
@@ -974,6 +989,13 @@
 				_status.SetState(EventSinkStatus.Canceled);
 			}
 
+			public void DisableGarbageNotification()
+			{
+				Thread.MemoryBarrier();
+				_disableGarbageNotification = true;
+				Thread.MemoryBarrier();
+			}
+
 			public bool Suspend()
 			{
 				return _status.SetStateIfLessThan(EventSinkStatus.Suspended, EventSinkStatus.Canceled);
@@ -1009,7 +1031,7 @@
 					}
 					catch (Exception e)
 					{
-						errorHandler(this, e);						
+						errorHandler(this, e);
 					}
 				}
 				return _status.CurrentState == EventSinkStatus.Canceled;
@@ -1058,14 +1080,7 @@
 				return strategy;
 			}
 
-			public void DisableGarbageNotification()
-			{
-				Thread.MemoryBarrier();
-				_disableGarbageNotification = true;
-				Thread.MemoryBarrier();
-			}
-
-			#endregion
+			#endregion Methods
 		}
 
 		class TrafficTrackingRec
@@ -1122,30 +1137,5 @@
 		}
 
 		#endregion Nested Types
-
-		#region Other
-
-		//bool _parallel;
-
-		#endregion Other
-
-		#region IEventListener Members
-
-		/// <summary>
-		/// Registers an event sink and activates it.
-		/// </summary>
-		/// <param name="sink">the event sink to register</param>
-		/// <param name="handback">a handback object - this object is opaque to the listener
-		/// and will be attached to the registration key prior to activation</param>
-		/// <returns>A registration key for the event sink.</returns>
-		public IEventSinkRegistrationKey RegisterAndActivateEventSink(IEventSink sink, object handback)
-		{
-			IEventSinkRegistrationKey key = RegisterEventSink(sink);
-			key.Handback = handback;
-			key.Activate();
-			return key;
-		}
-
-		#endregion
 	}
 }

@@ -145,7 +145,7 @@
 			int d = Convert.ToInt32(desired);
 			int t = Convert.ToInt32(toggle);
 
-		spin:
+			spin:
 			int r = Interlocked.CompareExchange(ref _status, d, t);
 			// If the state was the toggle state then we're successful and done...
 			if (r == t) return true;
@@ -200,13 +200,13 @@
 			return false;
 		}
 
-		#endregion Methods
-
 		internal E CompareExchange(E value, E comparand)
 		{
 			return
 				(E)Enum.ToObject(typeof(E), Interlocked.CompareExchange(ref _status, Convert.ToInt32(value), Convert.ToInt32(comparand)));
 				;
 		}
+
+		#endregion Methods
 	}
 }

@@ -38,5 +38,4 @@
 		/// <returns>a vote as to how future traffic from the endpoint should be handled</returns>
 		GarbageHandlingVote HandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage);
 	}
-
 }

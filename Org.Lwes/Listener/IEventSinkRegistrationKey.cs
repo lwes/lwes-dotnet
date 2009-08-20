@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Org.Lwes.Listener
+﻿namespace Org.Lwes.Listener
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Text;
+
 	/// <summary>
 	/// Registration key for event sinks.
 	/// </summary>
@@ -48,16 +48,15 @@ namespace Org.Lwes.Listener
 		void Cancel();
 
 		/// <summary>
+		/// Disables garbage notification for a sink.
+		/// </summary>		
+		void DisableGarbageNotification();
+
+		/// <summary>
 		/// Suspends the event sink. An event sink whose registration is suspended will not
 		/// receive event or garbage notification until it is re-activated.
 		/// </summary>
 		/// <returns><em>true</em> if the event sink has not already been canceled; otherwise <em>false</em></returns>
 		bool Suspend();
-
-		/// <summary>
-		/// Disables garbage notification for a sink.
-		/// </summary>		
-		void DisableGarbageNotification();
 	}
-
 }
