@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="BufferManager.cs" />
     <Compile Include="Config\AbstractConfigurationElementCollection.cs" />
+    <Compile Include="Config\DiagnosticsConfigurationElement.cs" />
     <Compile Include="Config\TemplateDBConfigurationElementCollection.cs" />
     <Compile Include="Config\TemplateDBConfigurationSection.cs" />
     <Compile Include="Config\ListenerConfigurationElementCollection.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="DB\EventTemplateDB.cs" />
     <Compile Include="DB\FilePathEventTemplateDB.cs" />
     <Compile Include="Config\EmitterConfigurationSection.cs" />
+    <Compile Include="Diagnostics.cs" />
     <Compile Include="Emitter\EventEmitter.cs" />
     <Compile Include="Emitter\MulticastEventEmitter.cs" />
     <Compile Include="Emitter\UnicastEventEmitter.cs" />
@@ -98,6 +100,14 @@
     <Compile Include="Coercion.cs" />
     <Compile Include="LwesSerializer.cs" />
     <Compile Include="Status.cs" />
+    <Compile Include="Trace\Filters\AllSourceFilter.cs" />
+    <Compile Include="Trace\Filters\CriticalSourceFilter.cs" />
+    <Compile Include="Trace\Filters\ErrorSourceFilter.cs" />
+    <Compile Include="Trace\Filters\InformationSourceFilter.cs" />
+    <Compile Include="Trace\Filters\NullSourceFilter.cs" />
+    <Compile Include="Trace\Filters\VerboseSourceFilter.cs" />
+    <Compile Include="Trace\Filters\WarningSourceFilter.cs" />
+    <Compile Include="Trace\ITraceSourceFilter.cs" />
     <Compile Include="UdpEndpoint.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

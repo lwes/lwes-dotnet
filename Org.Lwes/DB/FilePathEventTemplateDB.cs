@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -22,7 +22,6 @@ namespace Org.Lwes.DB
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
-	using System.Text;
 
 	using Org.Lwes.ESF;
 	using Org.Lwes.Properties;
@@ -108,9 +107,12 @@ namespace Org.Lwes.DB
 					var templates = parser.ParseEventTemplates(fs);
 					foreach (var evt in templates)
 					{
-						// TODO: Warn if there is already a template by the same name
 						if (_templates.ContainsKey(evt.Name))
+						{
+							// There is already a template by the same name: warn about it
+							this.TraceWarning(Resources.Warning_DuplicateEventTemplateFromESF, evt.Name, fn);
 							_templates[evt.Name] = evt;
+						}
 						else
 							_templates.Add(evt.Name, evt);
 					}

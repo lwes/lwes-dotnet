@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -20,9 +20,6 @@
 namespace Org.Lwes.DB
 {
 	using System;
-	using System.Configuration;
-
-	using Microsoft.Practices.ServiceLocation;
 
 	using Org.Lwes.Config;
 
@@ -71,12 +68,10 @@ namespace Org.Lwes.DB
 		/// two separate instances of the configured instance.</remarks>
 		public static IEventTemplateDB CreateFromConfig(string name)
 		{
-			TemplateDBConfigurationSection namedTemplateDBConfig = null;
-			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;
-			if (config != null)
-			{
-				namedTemplateDBConfig = config.TemplateDBs[name];
-			}
+			LwesConfigurationSection config = LwesConfigurationSection.Current;
+			if (config.TemplateDBs == null) return null;
+
+			TemplateDBConfigurationSection namedTemplateDBConfig = config.TemplateDBs[name];
 			if (namedTemplateDBConfig == null) return null;
 
 			FilePathEventTemplateDB db = new FilePathEventTemplateDB();

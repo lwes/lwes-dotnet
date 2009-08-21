@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -20,10 +20,7 @@
 namespace Org.Lwes.Emitter
 {
 	using System;
-	using System.Configuration;
 	using System.Net;
-
-	using Microsoft.Practices.ServiceLocation;
 
 	using Org.Lwes.Config;
 	using Org.Lwes.DB;
@@ -72,20 +69,18 @@ namespace Org.Lwes.Emitter
 		/// two separate instances of the configured instance.</remarks>
 		public static IEventEmitter CreateFromConfig(string name)
 		{
-			EmitterConfigurationSection namedEmitterConfig = null;
-			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;
-			if (config != null)
-			{
-				namedEmitterConfig = config.Emitters[name];
-			}
-			if (namedEmitterConfig == null) return null;
+			LwesConfigurationSection config = LwesConfigurationSection.Current;
+			if (config.Emitters == null) return null;
 
-			if (namedEmitterConfig.UseMulticast)
+			EmitterConfigurationSection namedConfig = config.Emitters[name];
+			if (namedConfig == null) return null;
+
+			if (namedConfig.UseMulticast)
 			{
 				MulticastEventEmitter mee = new MulticastEventEmitter();
-				mee.Initialize(namedEmitterConfig.Encoding, false, EventTemplateDB.CreateDefault(),
-					IPAddress.Parse(namedEmitterConfig.AddressString), namedEmitterConfig.Port,
-					namedEmitterConfig.MulticastTimeToLive, namedEmitterConfig.UseParallelEmit);
+				mee.Initialize(namedConfig.Encoding, false, EventTemplateDB.CreateDefault(),
+					IPAddress.Parse(namedConfig.AddressString), namedConfig.Port,
+					namedConfig.MulticastTimeToLive, namedConfig.UseParallelEmit);
 				return mee;
 			}
 			else

@@ -132,10 +132,18 @@
   <data name="Error_EmptyStringNotAllowed" xml:space="preserve">
     <value>Empty string not allowed</value>
   </data>
+  <data name="Error_EventSinkThrewException" xml:space="preserve">
+    <value>An event sink threw an uncaught exception. Registration key and data are attached.</value>
+  </data>
   <data name="Error_NotYetInitialized" xml:space="preserve">
     <value>Not yet initialized</value>
   </data>
   <data name="Error_UnrecognizedEncoding" xml:space="preserve">
     <value>Encountered an unrecognized encoding: {0}</value>
+  </data>
+  <data name="Warning_DuplicateEventTemplateFromESF" xml:space="preserve">
+    <value>A duplicate event template has been encountered while processing ESF files; another ESF file probably contains an event by the same name:
+event={0}
+file={1}</value>
   </data>
 </root>

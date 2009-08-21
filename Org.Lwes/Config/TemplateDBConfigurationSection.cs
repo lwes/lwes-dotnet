@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -20,11 +20,7 @@
 namespace Org.Lwes.Config
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Configuration;
-	using System.Linq;
-	using System.Net;
-	using System.Text;
 
 	/// <summary>
 	/// Configuration section for an event template DB.

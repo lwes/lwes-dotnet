@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -19,11 +19,7 @@
 //
 namespace Org.Lwes.Config
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Configuration;
-	using System.Linq;
-	using System.Text;
 
 	/// <summary>
 	/// Configuration for the light weight event system.
@@ -36,6 +32,11 @@ namespace Org.Lwes.Config
 		/// Property name for buffer allocation length.
 		/// </summary>
 		public const string PropertyName_bufferAllocationLength = "bufferAllocationLength";
+
+		/// <summary>
+		/// Property name for the diagnostics section.
+		/// </summary>
+		public const string PropertyName_diagnostics = "diagnostics";
 
 		/// <summary>
 		/// Property name for the emitters section.
@@ -79,6 +80,16 @@ namespace Org.Lwes.Config
 		}
 
 		/// <summary>
+		/// Configuration section containing diagnostics settings.
+		/// </summary>
+		[ConfigurationProperty(PropertyName_diagnostics, IsRequired = false)]
+		public DiagnosticsConfigurationElement Diagnostics
+		{
+			get { return (DiagnosticsConfigurationElement)this[PropertyName_diagnostics]; }
+			private set { this[PropertyName_diagnostics] = value; }
+		}
+
+		/// <summary>
 		/// Collection of configured emitters.
 		/// </summary>
 		[ConfigurationProperty(PropertyName_emitters, IsDefaultCollection = false
@@ -86,6 +97,7 @@ namespace Org.Lwes.Config
 		public EmitterConfigurationElementCollection Emitters
 		{
 			get { return (EmitterConfigurationElementCollection)this[PropertyName_emitters]; }
+			private set { this[PropertyName_emitters] = value; }
 		}
 
 		/// <summary>
@@ -96,6 +108,7 @@ namespace Org.Lwes.Config
 		public ListenerConfigurationElementCollection Listeners
 		{
 			get { return (ListenerConfigurationElementCollection)this[PropertyName_listeners]; }
+			private set { this[PropertyName_listeners] = value; }
 		}
 
 		/// <summary>
@@ -120,6 +133,25 @@ namespace Org.Lwes.Config
 		public TemplateDBConfigurationElementCollection TemplateDBs
 		{
 			get { return (TemplateDBConfigurationElementCollection)this[PropertyName_templateDBs]; }
+			private set { this[PropertyName_templateDBs] = value; }
+		}
+
+		internal static LwesConfigurationSection Current
+		{
+			get
+			{
+				LwesConfigurationSection config = ConfigurationManager.GetSection(
+					LwesConfigurationSection.SectionName) as LwesConfigurationSection;
+				if (config == null)
+				{
+					config = new LwesConfigurationSection();
+					//config.Diagnostics = new DiagnosticsConfigurationElement();
+					//config.Emitters = new EmitterConfigurationElementCollection();
+					//config.TemplateDBs = new TemplateDBConfigurationElementCollection();
+					//config.Listeners = new ListenerConfigurationElementCollection();
+				}
+				return config;
+			}
 		}
 
 		#endregion Properties

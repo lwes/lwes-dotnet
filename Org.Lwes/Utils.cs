@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -21,6 +21,7 @@ namespace Org.Lwes
 {
 	using System;
 	using System.Threading;
+	using System.Text;
 
 	/// <summary>
 	/// Contains utility methods.
@@ -150,5 +151,25 @@ namespace Org.Lwes
 		}
 
 		#endregion Methods
+
+		static readonly char[] __nibbleHex = new char[] 
+			{ 
+			'0', '1', '2', '3', '4', '5', '6', '7', 
+			'8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+			};
+
+		public static object BytesToOctets(byte[] buffer, int offset, int len)
+		{
+			StringBuilder builder = new StringBuilder(3 * len);
+			int first = offset;
+			for (int i = first; i < (offset + len); i++ )
+			{
+				byte b = buffer[i];
+				if (i > first) builder.Append(' ');
+				builder.Append(__nibbleHex[b >> 4]);
+				builder.Append(__nibbleHex[b & 0x0F]);
+			}
+			return builder.ToString();
+		}
 	}
 }

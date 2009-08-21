@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -69,8 +69,17 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		public void Dispose()
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
+			_status.SetStateIfLessThan(JournalerState.Disposing, JournalerState.Disposed);
+			try
+			{
+				Dispose(true);
+				GC.SuppressFinalize(this);
+			}
+			catch (Exception e)
+			{
+
+			}
+			_status.SetStateIfLessThan(JournalerState.Disposed, JournalerState.Disposed);
 		}
 
 		/// <summary>
@@ -100,7 +109,6 @@ namespace Org.Lwes.Journaler
 
 		private void Dispose(bool disposing)
 		{
-			_status.SetStateIfLessThan(JournalerState.Disposed, JournalerState.Disposed);
 		}
 
 		#endregion Methods

@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -49,9 +49,17 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		Stopping = 4,
 		/// <summary>
+		/// Indicates the journaler has stopped.
+		/// </summary>
+		Stopped = 5,
+		/// <summary>
+		/// Indicates the journaler is disposing.
+		/// </summary>
+		Disposing = 6,
+		/// <summary>
 		/// Indicates the journaler has disposed of it's system resources and should no longer be used.
 		/// </summary>
-		Disposed = 5
+		Disposed = 7
 	}
 
 	#endregion Enumerations

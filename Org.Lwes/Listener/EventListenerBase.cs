@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -28,6 +28,7 @@ namespace Org.Lwes.Listener
 
 	using Org.Lwes.DB;
 	using Org.Lwes.Properties;
+	using System.Diagnostics;
 
 	/// <summary>
 	/// Base class for event listeners.
@@ -345,11 +346,18 @@ namespace Org.Lwes.Listener
 
 		private void HandleErrorsOnEventSink(RegistrationKey key, Exception e)
 		{
+			this.TraceData(TraceEventType.Error, Resources.Error_EventSinkThrewException, key, e);
 			// TODO: Strategies for event sinks that cause exceptions.
 		}
 
 		private void HandleGarbageData(EndPoint ep, byte[] buffer, int offset, int bytesTransferred)
 		{
+			this.TraceData(TraceEventType.Verbose, new Func<object[]>(() =>
+				{
+					return new object[] { ((IPEndPoint)ep).ToString(), Util.BytesToOctets(buffer, offset, bytesTransferred) };
+				})
+				);
+
 			if (_garbageHandling > ListenerGarbageHandling.FailSilently)
 			{
 				IPEndPoint ipep = (IPEndPoint)ep;
@@ -369,7 +377,7 @@ namespace Org.Lwes.Listener
 					PerformGarbageDataNotification(tracking, ep, buffer, offset, bytesTransferred);
 				}
 			}
-		}
+		}		
 
 		private void PerformGarbageDataNotification(TrafficTrackingRec tracking, EndPoint rcep, byte[] buffer, int offset, int bytesTransferred)
 		{

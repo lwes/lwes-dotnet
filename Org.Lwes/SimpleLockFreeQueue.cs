@@ -1,4 +1,4 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
 // Code in this file is based on code by Idaho Edokpayi found at
@@ -6,12 +6,12 @@
 // Idaho Edokpayi's code is covered by the Code Project Open License (CPOL)
 // found at http://www.codeproject.com/info/cpol10.aspx
 //
-// I have modified the code to use C# idioms that I am fond of; previously 
+// I have modified the code to use C# idioms that I am fond of; previously
 // it resembled a port of C++ code and carried over those idioms.
-// 
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+//
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or

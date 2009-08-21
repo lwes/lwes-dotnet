@@ -1,9 +1,9 @@
-﻿// 
+﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
-//   original .NET implementation
-// 
+// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//	 original .NET implementation
+//
 // LWES.net is free software: you can redistribute it and/or modify
 // it under the terms of the Lesser GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -19,11 +19,7 @@
 //
 namespace Org.Lwes.Listener
 {
-	using System;
-	using System.Configuration;
 	using System.Net;
-
-	using Microsoft.Practices.ServiceLocation;
 
 	using Org.Lwes.Config;
 	using Org.Lwes.DB;
@@ -72,33 +68,29 @@ namespace Org.Lwes.Listener
 		/// two separate instances of the configured instance.</remarks>
 		public static IEventListener CreateFromConfig(string name)
 		{
-			ListenerConfigurationSection namedListenerConfig = null;
-			LwesConfigurationSection config = ConfigurationManager.GetSection(LwesConfigurationSection.SectionName) as LwesConfigurationSection;
-			if (config != null)
-			{
-				namedListenerConfig = config.Listeners[name];
-			}
-			if (namedListenerConfig == null) return null;
+			LwesConfigurationSection config = LwesConfigurationSection.Current;
+			ListenerConfigurationSection namedConfig = config.Listeners[name];
+			if (namedConfig == null) return null;
 
-			if (namedListenerConfig.UseMulticast)
+			if (namedConfig.UseMulticast)
 			{
 				MulticastEventListener mee = new MulticastEventListener();
 				mee.Initialize(EventTemplateDB.CreateDefault(),
-					IPAddress.Parse(namedListenerConfig.AddressString),
-					namedListenerConfig.Port,
-					namedListenerConfig.UseParallelEmit,
-					namedListenerConfig.GarbageHandling);
+					IPAddress.Parse(namedConfig.AddressString),
+					namedConfig.Port,
+					namedConfig.UseParallelEmit,
+					namedConfig.GarbageHandling);
 				return mee;
 			}
 			else
 			{
-				throw new NotImplementedException("TODO: Support UnicastEventListener");
-				//UnicastEventListener mee = new UnicastEventListener();
-				//mee.Initialize(EventTemplateDB.CreateDefault(),
-				//  IPAddress.Parse(namedListenerConfig.AddressString),
-				//  namedListenerConfig.Port,
-				//  namedListenerConfig.UseParallelEmit);
-				//return mee;
+				UnicastEventListener uee = new UnicastEventListener();
+				uee.Initialize(EventTemplateDB.CreateDefault(),
+					IPAddress.Parse(namedConfig.AddressString),
+					namedConfig.Port,
+					namedConfig.UseParallelEmit,
+					namedConfig.GarbageHandling);
+				return uee;
 			}
 		}
 
