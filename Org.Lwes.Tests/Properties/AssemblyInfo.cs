@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("LWES.org")]
 [assembly: AssemblyProduct("Org.Lwes.Tests")]
-[assembly: AssemblyCopyright("Copyright© LWES.org 2009")]
+[assembly: AssemblyCopyright("COPYRIGHT© 2009, Phillip Clark")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]

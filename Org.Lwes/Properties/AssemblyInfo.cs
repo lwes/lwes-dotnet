@@ -2,11 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("LWES DotNet Binding")]
-[assembly: AssemblyDescription(".NET binding for the Light Weight Event System")]
+[assembly: AssemblyTitle("LWES .NET Binding (LWES.net)")]
+[assembly: AssemblyDescription(".NET binding for the Light Weight Event System - more information at http://www.lwes.org")]
 [assembly: AssemblyCompany("LWES.org")]
 [assembly: AssemblyProduct("Light Weight Event System")]
-[assembly: AssemblyCopyright("Copyright© LWES.org 2009")]
+[assembly: AssemblyCopyright("COPYRIGHT© 2009, Phillip Clark")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("c0bf1d1a-7651-471f-87e4-1bd1acabbe77")]

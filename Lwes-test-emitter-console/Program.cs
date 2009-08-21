@@ -17,6 +17,7 @@
 /// You should have received a copy of the GNU General Public License
 /// along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 ///namespace Lwes_test_emitter_console
+namespace Lwes_test_emitter_console
 {
 	using System;
 	using System.Diagnostics;
