@@ -1,5 +1,22 @@
-This is the .NET API for the Light Weight Event System.
+Light Weight Event System .Net Binding (LWES.net)
 
+COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+  original .NET implementation
+ 
+LWES.net is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+LWES.net is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
+
+__________________
 2009-08-13 Version 0.1.* ALPHA - Happy Birthday to me: LWES DotNet Binding.
 	
 	This is the initial check-in - it remains a work in progress. I've been working

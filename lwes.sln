@@ -7,10 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Org.Lwes.Tests", "Org.Lwes.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3E15B2B5-1A84-400A-BB14-3D51B7822C0E}"
 	ProjectSection(SolutionItems) = preProject
+		..\..\..\Downloads\DiskBasedDataStructures\lgpl-3.0.txt = ..\..\..\Downloads\DiskBasedDataStructures\lgpl-3.0.txt
 		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
 		lwes.vsmdi = lwes.vsmdi
 		narrange.xml = narrange.xml
 		README.txt = README.txt
+		Sample Configuration.config = Sample Configuration.config
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lwes-test-emitter-console", "Lwes-test-emitter-console\Lwes-test-emitter-console.csproj", "{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}"

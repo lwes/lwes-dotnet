@@ -67,14 +67,12 @@
     <Compile Include="ESF\EventTemplate.cs" />
     <Compile Include="ESF\EsfParser.cs" />
     <Compile Include="ESF\Exceptions.cs" />
-    <Compile Include="Factory\IEventFactory.cs" />
     <Compile Include="EventAttribute.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Emitter\EventEmitterBase.cs" />
     <Compile Include="Emitter\IEventEmitter.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Event.cs" />
-    <Compile Include="EventAttributeMetadata.cs" />
     <Compile Include="EventUtils.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="IoCAdapter.cs" />
@@ -111,11 +109,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Sample Configuration.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

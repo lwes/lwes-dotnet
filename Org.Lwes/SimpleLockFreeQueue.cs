@@ -1,4 +1,31 @@
-﻿namespace Org.Lwes
+﻿// 
+// This file is part of the LWES .NET Binding (LWES.net)
+//
+// Code in this file is based on code by Idaho Edokpayi found at
+// http://www.codeproject.com/KB/cpp/lockfreeq.aspx?fid=996469&df=90&mpp=25&noise=3&sort=Position&view=Quick
+// Idaho Edokpayi's code is covered by the Code Project Open License (CPOL)
+// found at http://www.codeproject.com/info/cpol10.aspx
+//
+// I have modified the code to use C# idioms that I am fond of; previously 
+// it resembled a port of C++ code and carried over those idioms.
+// 
+// COPYRIGHT (C) 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+//   original .NET implementation
+// 
+// LWES.net is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// LWES.net is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
+//
+namespace Org.Lwes
 {
 	using System;
 	using System.Threading;
