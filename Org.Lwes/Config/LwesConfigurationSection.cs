@@ -118,7 +118,7 @@ namespace Org.Lwes.Config
 		/// </summary>
 		[ConfigurationProperty(PropertyName_maximumBufferMemory
 			, IsRequired = false
-			, DefaultValue = Constants.CMaximumBufferingMemory)]
+			, DefaultValue = Constants.CMaximumBufferMemory)]
 		public int MaximumBufferMemory
 		{
 			get { return (int)this[PropertyName_maximumBufferMemory]; }

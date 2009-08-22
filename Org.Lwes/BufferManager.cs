@@ -35,7 +35,7 @@ namespace Org.Lwes
 		#region Fields
 
 		static readonly int __bufferAllocationLength = Constants.CAllocationBufferLength;
-		static readonly int __maxMemory = Constants.CMaximumBufferingMemory;
+		static readonly int __maxMemory = Constants.CMaximumBufferMemory;
 
 		static int __memoryInUse = 0;
 

@@ -21,6 +21,7 @@ namespace Org.Lwes.Listener
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Net;
 	using System.Net.Sockets;
@@ -28,12 +29,11 @@ namespace Org.Lwes.Listener
 
 	using Org.Lwes.DB;
 	using Org.Lwes.Properties;
-	using System.Diagnostics;
 
 	/// <summary>
 	/// Base class for event listeners.
 	/// </summary>
-	public class EventListenerBase : IEventListener
+	public class EventListenerBase : IEventListener, ITraceable
 	{
 		#region Fields
 
@@ -377,7 +377,7 @@ namespace Org.Lwes.Listener
 					PerformGarbageDataNotification(tracking, ep, buffer, offset, bytesTransferred);
 				}
 			}
-		}		
+		}
 
 		private void PerformGarbageDataNotification(TrafficTrackingRec tracking, EndPoint rcep, byte[] buffer, int offset, int bytesTransferred)
 		{

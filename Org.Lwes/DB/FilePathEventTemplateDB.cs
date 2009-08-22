@@ -30,7 +30,7 @@ namespace Org.Lwes.DB
 	/// Event template database implementation that uses a file path
 	/// and ".esf" files for event definitions.
 	/// </summary>
-	public class FilePathEventTemplateDB : IEventTemplateDB
+	public class FilePathEventTemplateDB : IEventTemplateDB, ITraceable
 	{
 		#region Fields
 

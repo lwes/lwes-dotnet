@@ -56,7 +56,7 @@
     <Compile Include="DB\EventTemplateDB.cs" />
     <Compile Include="DB\FilePathEventTemplateDB.cs" />
     <Compile Include="Config\EmitterConfigurationSection.cs" />
-    <Compile Include="Diagnostics.cs" />
+    <Compile Include="Trace\Diagnostics.cs" />
     <Compile Include="Emitter\EventEmitter.cs" />
     <Compile Include="Emitter\MulticastEventEmitter.cs" />
     <Compile Include="Emitter\UnicastEventEmitter.cs" />
@@ -74,6 +74,7 @@
     <Compile Include="EventUtils.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="IoCAdapter.cs" />
+    <Compile Include="Trace\ITraceable.cs" />
     <Compile Include="Journaler\IJournaler.cs" />
     <Compile Include="Journaler\JournalerBase.cs" />
     <Compile Include="Listener\Enums.cs" />

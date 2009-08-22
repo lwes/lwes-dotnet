@@ -144,6 +144,15 @@
   <data name="Error_UnexpectedErrorDisposingJournaler" xml:space="preserve">
     <value>An unexpected error occured while disposing of a journaler; error to follow.</value>
   </data>
+  <data name="Error_UnexpectedErrorInitializingJournaler" xml:space="preserve">
+    <value>An unexpected error occured while initializing a journaler; error to follow.</value>
+  </data>
+  <data name="Error_UnexpectedErrorStartngJournaler" xml:space="preserve">
+    <value>An unexpected error occured while starting a journaler; error to follow.</value>
+  </data>
+  <data name="Error_UnexpectedErrorStoppingJournaler" xml:space="preserve">
+    <value>An unexpected error occured while stopping a journaler; error to follow.</value>
+  </data>
   <data name="Error_UnrecognizedEncoding" xml:space="preserve">
     <value>Encountered an unrecognized encoding: {0}</value>
   </data>

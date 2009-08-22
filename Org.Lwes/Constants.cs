@@ -116,7 +116,7 @@ namespace Org.Lwes
 		/// <summary>
 		/// Maximum memory used for buffering incoming events.
 		/// </summary>
-		public const int CMaximumBufferingMemory = 0x20000000; // .5GB
+		public const int CMaximumBufferMemory = 0x20000000; // .5GB
 
 		#endregion Fields
 

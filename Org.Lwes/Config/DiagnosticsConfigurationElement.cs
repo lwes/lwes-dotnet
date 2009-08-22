@@ -37,14 +37,17 @@ namespace Org.Lwes.Config
 		/// Default value indicating unknown.
 		/// </summary>
 		public const string DefaultValue_unknown = "unknown";
+
 		/// <summary>
 		/// Property name for component.
 		/// </summary>
 		public const string PropertyName_component = "component";
+
 		/// <summary>
 		/// Property name for defaultTraceSource.
 		/// </summary>
 		public const string PropertyName_defaultTraceSource = "defaultTraceSource";
+
 		/// <summary>
 		/// Property name for environment.
 		/// </summary>

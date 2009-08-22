@@ -20,11 +20,11 @@
 namespace Org.Lwes.Journaler
 {
 	using System;
-
-	using Org.Lwes.Properties;
 	using System.Diagnostics;
-using Org.Lwes.Listener;
 	using System.Net;
+
+	using Org.Lwes.Listener;
+	using Org.Lwes.Properties;
 
 	/// <summary>
 	/// Base class implementation for journalers.
@@ -33,17 +33,28 @@ using Org.Lwes.Listener;
 	/// This base class assumes there is a one-to-one relationship between the journaler
 	/// and a listener.
 	/// </remarks>
-	public abstract class JournalerBase : IJournaler, IEventSink
+	public abstract class JournalerBase : IJournaler, IEventSink, ITraceable
 	{
 		#region Fields
 
-		Status<JournalerState> _status;
 		IEventListener _listener;
 		IEventSinkRegistrationKey _registrationKey;
+		Status<JournalerState> _status;
 
 		#endregion Fields
 
 		#region Constructors
+
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
+		/// <param name="listener">The event listener this journaler will receive
+		/// messages from.</param>
+		protected JournalerBase(IEventListener listener)
+		{
+			if (listener == null) throw new ArgumentNullException("listener");
+			_listener = listener;
+		}
 
 		/// <summary>
 		/// Finalizes the journaler.
@@ -58,6 +69,16 @@ using Org.Lwes.Listener;
 		#region Properties
 
 		/// <summary>
+		/// Indicates whether the journaler is thread-safe. Derived classes must
+		/// set this property.
+		/// </summary>
+		public bool IsThreadSafe
+		{
+			get;
+			protected set;
+		}
+
+		/// <summary>
 		/// Gets the status of the journaler.
 		/// </summary>
 		public JournalerState Status
@@ -69,17 +90,15 @@ using Org.Lwes.Listener;
 
 		#region Methods
 
-		protected JournalerBase(IEventListener listener)
-		{
-			if (listener == null) throw new ArgumentNullException("listener");
-			_listener = listener;
-		}
-
 		/// <summary>
 		/// Disposes of the journaler.
 		/// </summary>
 		public void Dispose()
 		{
+			if (_status.CurrentState == JournalerState.Active)
+			{
+				Stop();
+			}
 			if (_status.SetStateIfLessThan(JournalerState.Disposing, JournalerState.Disposing))
 			{
 				try
@@ -96,6 +115,16 @@ using Org.Lwes.Listener;
 					_status.SetState(JournalerState.Disposed);
 				}
 			}
+		}
+
+		void IEventSink.HandleEventArrival(IEventSinkRegistrationKey key, Event ev)
+		{
+			OnHandleEventArrival(key, ev);
+		}
+
+		GarbageHandlingVote IEventSink.HandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
+		{
+			return PerformHandleGarbageData(key, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
 		}
 
 		/// <summary>
@@ -116,6 +145,7 @@ using Org.Lwes.Listener;
 				catch (Exception e)
 				{
 					_status.TryTransition(JournalerState.Unknown, JournalerState.Initializing);
+					this.TraceData(TraceEventType.Error, Resources.Error_UnexpectedErrorInitializingJournaler, e);
 				}
 			}
 			else
@@ -123,8 +153,6 @@ using Org.Lwes.Listener;
 				throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
 			}
 		}
-
-		protected abstract bool PerformInitialize();
 
 		/// <summary>
 		/// Starts the journaler.
@@ -139,20 +167,15 @@ using Org.Lwes.Listener;
 					// Let the subclass decide if the start succeeded.
 					if (PerfromStart(_registrationKey) && _registrationKey.Activate())
 					{
-						_status.TryTransition(JournalerState.Active, JournalerState.Starting);						
+						_status.TryTransition(JournalerState.Active, JournalerState.Starting);
 					}
 				}
 				catch (Exception e)
 				{
-					this.TraceData(TraceEventType.Error, "Error trying to start journaler", e);
+					this.TraceData(TraceEventType.Error, Resources.Error_UnexpectedErrorStartngJournaler, e);
 					_status.TryTransition(JournalerState.Initialized, JournalerState.Starting);
 				}
 			}
-		}
-
-		protected virtual bool PerfromStart(IEventSinkRegistrationKey registrationKey)
-		{
-			return true;
 		}
 
 		/// <summary>
@@ -162,64 +185,96 @@ using Org.Lwes.Listener;
 		{
 			if (_status.SetStateIfLessThan(JournalerState.Stopping, JournalerState.Active))
 			{
-				bool stopped = false;
 				try
 				{
 					_registrationKey.Suspend();
 					// Let the subclass decide if the stop succeeded.
-					if (stopped = PerfromStop(_registrationKey))
+					if (PerfromStop(_registrationKey))
 					{
-						_registrationKey.Cancel();
 						_registrationKey = null;
+						_status.TryTransition(JournalerState.Stopped, JournalerState.Stopping);				
 					}
 				}
-				finally
+				catch (Exception e)
 				{
-					// An exception in the subclass causes the state transition to fail.
-					if (stopped)
-						_status.TryTransition(JournalerState.Stopped, JournalerState.Stopping);
-					else
-						_status.TryTransition(JournalerState.Active, JournalerState.Stopping);
+					this.TraceData(TraceEventType.Error, Resources.Error_UnexpectedErrorStoppingJournaler, e);
+					_status.TryTransition(JournalerState.Active, JournalerState.Stopping);
 				}
 			}
 		}
 
-		protected virtual bool PerfromStop(IEventSinkRegistrationKey registrationKey)
-		{
-			return true;
-		}
-
+		/// <summary>
+		/// Disposes the journaler. Derived classes may override this method to perform
+		/// additional cleanup.
+		/// </summary>
+		/// <param name="disposing"></param>
 		protected virtual void Dispose(bool disposing)
 		{
 		}
 
-		#endregion Methods
-
-		#region IEventSink Members
-
-		public bool IsThreadSafe
-		{
-			get;
-			protected set;
-		}
-
-		void IEventSink.HandleEventArrival(IEventSinkRegistrationKey key, Event ev)
-		{
-			OnHandleEventArrival(key, ev);
-		}
-
+		/// <summary>
+		/// Handles event arrival. Derived classes must override this method to handle
+		/// LWES events when they arrive.
+		/// </summary>
+		/// <param name="key">the journaler's registration key with the underlying IEventListener</param>
+		/// <param name="ev">an LWES event</param>
 		protected abstract void OnHandleEventArrival(IEventSinkRegistrationKey key, Event ev);
 
-		GarbageHandlingVote IEventSink.HandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
-		{
-			return PerformHandleGarbageData(key, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
-		}
-
+		/// <summary>
+		/// Handles garbage data. Derived classes may override this method to handle the
+		/// arrival of garbage data from an endpoint.
+		/// </summary>
+		/// <param name="key">the journaler's registration key with the underlying IEventListener</param>
+		/// <param name="remoteEndPoint">The remote endpoint that sent the garbage</param>
+		/// <param name="priorGarbageCountForEndpoint">Number of times the endpoint has sent garbage</param>
+		/// <param name="garbage">The garbage data as a byte array (this is a copy)</param>
+		/// <returns>The journaler's vote as to how future garbage data should be handled (on a per-endpoint basis)</returns>
 		protected virtual GarbageHandlingVote PerformHandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
 		{
 			return GarbageHandlingVote.Default;
 		}
 
-		#endregion
+		/// <summary>
+		/// Performs initialization of the derived class.
+		/// </summary>
+		/// <returns></returns>
+		protected abstract bool PerformInitialize();
+
+		/// <summary>
+		/// Starts the journaler; derived classes may override this method to perform
+		/// additional logic when starting. The registration key controls the journaler's
+		/// registration with the underlying IEventListener. At the time of the call
+		/// the registration is suspended (journaler is not yet receiving LWES events).
+		/// It is the responsibility of the derived class to either call the base-class
+		/// PerformStart method or activate the registration key. LWES events will not
+		/// flow to the journaler until the key has been activated.
+		/// </summary>
+		/// <param name="registrationKey"></param>
+		/// <returns></returns>
+		protected virtual bool PerfromStart(IEventSinkRegistrationKey registrationKey)
+		{
+			if (registrationKey == null) throw new ArgumentNullException("registrationKey");
+			return registrationKey.Activate();
+		}
+
+		/// <summary>
+		/// Stops the journaler; derived classes may override this method to perform
+		/// additional logic when stopping. The registration key controls the journaler's
+		/// registration with the underlying IEventListener. At the time of the call
+		/// the registration is suspended (journaler is no longer receiving LWES events).
+		/// It is the responsibility of the derived class to either call the base-class
+		/// PerformStop method or cancel the registration key. The journaler will hold
+		/// the registration key indefinitely if it is not canceled.
+		/// </summary>
+		/// <param name="registrationKey"></param>
+		/// <returns></returns>
+		protected virtual bool PerfromStop(IEventSinkRegistrationKey registrationKey)
+		{
+			if (registrationKey == null) throw new ArgumentNullException("registrationKey");
+			registrationKey.Cancel();
+			return true;
+		}
+
+		#endregion Methods
 	}
 }

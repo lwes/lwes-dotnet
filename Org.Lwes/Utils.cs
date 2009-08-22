@@ -20,15 +20,46 @@
 namespace Org.Lwes
 {
 	using System;
-	using System.Threading;
 	using System.Text;
+	using System.Threading;
 
 	/// <summary>
 	/// Contains utility methods.
 	/// </summary>
 	public static class Util
 	{
+		#region Fields
+
+		static readonly char[] __nibbleHex = new char[] 
+			{
+			'0', '1', '2', '3', '4', '5', '6', '7',
+			'8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+			};
+
+		#endregion Fields
+
 		#region Methods
+
+		/// <summary>
+		/// Converts an array of bytes to an octet string
+		/// </summary>
+		/// <param name="buffer"></param>
+		/// <param name="offset"></param>
+		/// <param name="len"></param>
+		/// <returns></returns>
+		public static object BytesToOctets(byte[] buffer, int offset, int len)
+		{
+			StringBuilder builder = new StringBuilder(3 * len);
+			int first = offset;
+			for (int i = first; i < (offset + len); i++ )
+			{
+				byte b = buffer[i];
+				if (i > first) builder.Append(' ');
+				builder.Append(__nibbleHex[b >> 4]);
+				builder.Append(__nibbleHex[b & 0x0F]);
+			}
+			return builder.ToString();
+		}
 
 		/// <summary>
 		/// Disposes of the referenced item and sets its value to null.
@@ -88,6 +119,15 @@ namespace Org.Lwes
 			return variable;
 		}
 
+		/// <summary>
+		/// Initializes a referenced variable if it is not already initialized. Uses
+		/// the <paramref name="factoryDelegate"/> to create the instance if necessary.
+		/// </summary>
+		/// <typeparam name="T">variable type T</typeparam>
+		/// <param name="variable">reference to the variable being initialized</param>
+		/// <param name="lck">an object used as a lock if initialization is necessary</param>
+		/// <param name="factoryDelegate">factory delegate</param>
+		/// <returns>the value of the variable, after the lazy initailize</returns>
 		public static T LazyInitializeWithLock<T>(ref T variable, Object lck, Func<T> factoryDelegate)
 			where T : class
 		{
@@ -173,25 +213,5 @@ namespace Org.Lwes
 		}
 
 		#endregion Methods
-
-		static readonly char[] __nibbleHex = new char[] 
-			{ 
-			'0', '1', '2', '3', '4', '5', '6', '7', 
-			'8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-			};
-
-		public static object BytesToOctets(byte[] buffer, int offset, int len)
-		{
-			StringBuilder builder = new StringBuilder(3 * len);
-			int first = offset;
-			for (int i = first; i < (offset + len); i++ )
-			{
-				byte b = buffer[i];
-				if (i > first) builder.Append(' ');
-				builder.Append(__nibbleHex[b >> 4]);
-				builder.Append(__nibbleHex[b & 0x0F]);
-			}
-			return builder.ToString();
-		}
 	}
 }

@@ -21,6 +21,7 @@ namespace Org.Lwes
 {
 	using System;
 	using System.Diagnostics;
+
 	using Org.Lwes.Properties;
 
 	/// <summary>
@@ -28,9 +29,6 @@ namespace Org.Lwes
 	/// </summary>
 	public abstract class IoCAdapter
 	{
-		public abstract bool TryCreate<T>(out T instance);
-		public abstract bool TryCreate<T>(string name, out T instance);
-
 		#region Fields
 
 		static IoCAdapter __current;
@@ -39,7 +37,7 @@ namespace Org.Lwes
 
 		#endregion Fields
 
-		#region Methods
+		#region Properties
 
 		internal static IoCAdapter Current
 		{
@@ -53,11 +51,19 @@ namespace Org.Lwes
 			}
 		}
 
-		private static IoCAdapter CreateIoCAdapterFromConfiguration()
-		{
-			throw new NotImplementedException();
-		}
+		#endregion Properties
 
+		#region Methods
+
+		/// <summary>
+		/// Tries to create a named instance of type T using the currently
+		/// configured IoC container.
+		/// </summary>
+		/// <typeparam name="T">instance type T</typeparam>
+		/// <param name="instance">reference to a variable where the resulting 
+		/// instance will be stored</param>
+		/// <returns><em>true</em> if a valid instance of type <typeparamref name="T"/> was stored
+		/// in <paramref name="instance"/>; otherwise <em>false</em></returns>
 		public static bool TryCreateFromIoC<T>(out T instance)
 		{
 			if (!__hardFailOnAccessingIoC)
@@ -83,14 +89,15 @@ namespace Org.Lwes
 		}
 
 		/// <summary>
-		/// Attempts to create a named instance of type T using the currently
+		/// Tries to create a named instance of type T using the currently
 		/// configured IoC container.
 		/// </summary>
-		/// <typeparam name="T">new instance type T</typeparam>
-		/// <param name="name">the name of the instance to create</param>
-		/// <returns>if an IoC container is in use and there is a named
-		/// instance configured in the container then the instance is 
-		/// returned; otherwise null</returns>
+		/// <typeparam name="T">instance type T</typeparam>
+		/// <param name="name">name of the instance</param>
+		/// <param name="instance">reference to a variable where the resulting 
+		/// instance will be stored</param>
+		/// <returns><em>true</em> if a valid instance of type T was stored
+		/// in <paramref name="instance"/>; otherwise <em>false</em></returns>
 		public static bool TryCreateFromIoC<T>(string name, out T instance)
 		{
 			if (!__hardFailOnAccessingIoC)
@@ -113,6 +120,30 @@ namespace Org.Lwes
 			}
 			instance = default(T);
 			return false;
+		}
+
+		/// <summary>
+		/// Tries to create/access an instance of type T
+		/// </summary>
+		/// <typeparam name="T">target type T</typeparam>
+		/// <param name="instance">reference to a variable that will hold the instance</param>
+		/// <returns><em>true</em> if the variable is set to a valid instance of type T
+		/// during the call; otherwise <em>false</em></returns>
+		public abstract bool TryCreate<T>(out T instance);
+
+		/// <summary>
+		/// Tries to create/access a named instance of type T
+		/// </summary>
+		/// <typeparam name="T">target type T</typeparam>
+		/// <param name="name">name of an instance to create</param>
+		/// <param name="instance">reference to a variable that will hold the instance</param>
+		/// <returns><em>true</em> if the variable is set to a valid instance of type T
+		/// during the call; otherwise <em>false</em></returns>
+		public abstract bool TryCreate<T>(string name, out T instance);
+
+		private static IoCAdapter CreateIoCAdapterFromConfiguration()
+		{
+			throw new NotImplementedException();
 		}
 
 		#endregion Methods
