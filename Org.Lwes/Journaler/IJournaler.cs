@@ -37,6 +37,10 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		Initializing = 1,
 		/// <summary>
+		/// Indicates the journaler has been initialilzed.
+		/// </summary>
+		Initialized = 2,
+		/// <summary>
 		/// Indicates the journaler is starting.
 		/// </summary>
 		Starting = 2,
