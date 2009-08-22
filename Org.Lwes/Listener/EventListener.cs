@@ -44,9 +44,8 @@ namespace Org.Lwes.Listener
 		/// </summary>
 		public static IEventListener CreateDefault()
 		{
-			IEventListener result = IoCAdapter.CreateFromIoC<IEventListener>(Constants.DefaultEventListenerContainerKey);
-
-			if (result == null)
+			IEventListener result;
+			if (!IoCAdapter.TryCreateFromIoC(Constants.DefaultEventListenerContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
 				// or there isn't an IoC container in use... fall back to configuration section.
 				result = CreateFromConfig(Constants.DefaultEventListenerConfigName);
@@ -103,8 +102,8 @@ namespace Org.Lwes.Listener
 		/// or the configuration; otherwise null</returns>
 		public static IEventListener CreateNamedListener(string name)
 		{
-			IEventListener result = IoCAdapter.CreateFromIoC<IEventListener>(name);
-			if (result == null)
+			IEventListener result;
+			if (!IoCAdapter.TryCreateFromIoC<IEventListener>(name, out result))
 			{
 				result = CreateFromConfig(name);
 			}

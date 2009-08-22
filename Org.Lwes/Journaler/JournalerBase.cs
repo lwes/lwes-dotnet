@@ -20,12 +20,9 @@
 namespace Org.Lwes.Journaler
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Text;
-	using System.Threading;
 
 	using Org.Lwes.Properties;
+	using System.Diagnostics;
 
 	/// <summary>
 	/// Base class implementation for journalers.
@@ -77,7 +74,7 @@ namespace Org.Lwes.Journaler
 			}
 			catch (Exception e)
 			{
-
+				this.TraceData(TraceEventType.Error, Resources.Error_UnexpectedErrorDisposingJournaler, e);
 			}
 			_status.SetStateIfLessThan(JournalerState.Disposed, JournalerState.Disposed);
 		}

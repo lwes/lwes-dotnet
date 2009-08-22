@@ -45,9 +45,8 @@ namespace Org.Lwes.Emitter
 		/// </summary>
 		public static IEventEmitter CreateDefault()
 		{
-			IEventEmitter result = IoCAdapter.CreateFromIoC<IEventEmitter>(Constants.DefaultEventEmitterContainerKey);
-
-			if (result == null)
+			IEventEmitter result;
+			if (!IoCAdapter.TryCreateFromIoC<IEventEmitter>(Constants.DefaultEventEmitterContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
 				// or there isn't an IoC container in use... fall back to configuration section.
 				result = CreateFromConfig(Constants.DefaultEventEmitterConfigName);
@@ -103,8 +102,8 @@ namespace Org.Lwes.Emitter
 		/// or the configuration; otherwise null</returns>
 		public static IEventEmitter CreateNamedEmitter(string name)
 		{
-			IEventEmitter result = IoCAdapter.CreateFromIoC<IEventEmitter>(name);
-			if (result == null)
+			IEventEmitter result;
+			if (!IoCAdapter.TryCreateFromIoC<IEventEmitter>(name, out result))
 			{
 				result = CreateFromConfig(name);
 			}

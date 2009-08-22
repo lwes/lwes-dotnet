@@ -44,9 +44,8 @@ namespace Org.Lwes.DB
 		/// </summary>
 		public static IEventTemplateDB CreateDefault()
 		{
-			IEventTemplateDB result = IoCAdapter.CreateFromIoC<IEventTemplateDB>(Constants.DefaultEventTemplateDBContainerKey);
-
-			if (result == null)
+			IEventTemplateDB result;
+			if (!IoCAdapter.TryCreateFromIoC<IEventTemplateDB>(Constants.DefaultEventTemplateDBContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
 				// or there isn't an IoC container in use... fall back to configuration section.
 				result = CreateFromConfig(Constants.DefaultEventTemplateDBConfigName);
@@ -88,8 +87,8 @@ namespace Org.Lwes.DB
 		/// or the configuration; otherwise null</returns>
 		public static IEventTemplateDB CreateNamedTemplateDB(string name)
 		{
-			IEventTemplateDB result = IoCAdapter.CreateFromIoC<IEventTemplateDB>(name);
-			if (result == null)
+			IEventTemplateDB result;
+			if (!IoCAdapter.TryCreateFromIoC<IEventTemplateDB>(name, out result))
 			{
 				result = CreateFromConfig(name);
 			}

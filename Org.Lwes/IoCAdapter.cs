@@ -20,21 +20,67 @@
 namespace Org.Lwes
 {
 	using System;
-
-	using Microsoft.Practices.ServiceLocation;
+	using System.Diagnostics;
+	using Org.Lwes.Properties;
 
 	/// <summary>
 	/// Utility methods for interacting with IoC containers.
 	/// </summary>
-	public static class IoCAdapter
+	public abstract class IoCAdapter
 	{
+		public abstract bool TryCreate<T>(out T instance);
+		public abstract bool TryCreate<T>(string name, out T instance);
+
 		#region Fields
 
+		static IoCAdapter __current;
+		static Object __creationLock = new Object();
 		static bool __hardFailOnAccessingIoC;
 
 		#endregion Fields
 
 		#region Methods
+
+		internal static IoCAdapter Current
+		{
+			get
+			{
+				if (__hardFailOnAccessingIoC) return null;
+				return Util.LazyInitializeWithLock(ref __current, __creationLock, () =>
+					{
+						return CreateIoCAdapterFromConfiguration();
+					});
+			}
+		}
+
+		private static IoCAdapter CreateIoCAdapterFromConfiguration()
+		{
+			throw new NotImplementedException();
+		}
+
+		public static bool TryCreateFromIoC<T>(out T instance)
+		{
+			if (!__hardFailOnAccessingIoC)
+			{
+				try
+				{
+					// Try to use the service locator - this is IoC implementation independent
+					IoCAdapter current = IoCAdapter.Current;
+					if (current != null)
+					{
+						return current.TryCreate(out instance);
+					}
+				}
+				catch (Exception e)
+				{
+					Diagnostics.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
+					/* IoC failure - remember this and stop trying */
+					__hardFailOnAccessingIoC = true;
+				}
+			}
+			instance = default(T);
+			return false;
+		}
 
 		/// <summary>
 		/// Attempts to create a named instance of type T using the currently
@@ -45,28 +91,28 @@ namespace Org.Lwes
 		/// <returns>if an IoC container is in use and there is a named
 		/// instance configured in the container then the instance is 
 		/// returned; otherwise null</returns>
-		public static T CreateFromIoC<T>(string name)
+		public static bool TryCreateFromIoC<T>(string name, out T instance)
 		{
-			T result = default(T);
-
 			if (!__hardFailOnAccessingIoC)
 			{
 				try
 				{
 					// Try to use the service locator - this is IoC implementation independent
-					IServiceLocator loc = ServiceLocator.Current;
-					if (loc != null)
+					IoCAdapter current = IoCAdapter.Current;
+					if (current != null)
 					{
-						result = loc.GetInstance<T>(name);
+						return current.TryCreate(out instance);
 					}
 				}
-				catch (NullReferenceException)
+				catch (Exception e)
 				{
-					/* no IoC - fall through */
+					Diagnostics.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
+					/* IoC failure - remember this and stop trying */
 					__hardFailOnAccessingIoC = true;
 				}
 			}
-			return result;
+			instance = default(T);
+			return false;
 		}
 
 		#endregion Methods

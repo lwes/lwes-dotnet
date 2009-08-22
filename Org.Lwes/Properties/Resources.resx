@@ -135,8 +135,14 @@
   <data name="Error_EventSinkThrewException" xml:space="preserve">
     <value>An event sink threw an uncaught exception. Registration key and data are attached.</value>
   </data>
+  <data name="Error_IocAdapterFailure" xml:space="preserve">
+    <value>The configured IoCAdapter threw the following exception</value>
+  </data>
   <data name="Error_NotYetInitialized" xml:space="preserve">
     <value>Not yet initialized</value>
+  </data>
+  <data name="Error_UnexpectedErrorDisposingJournaler" xml:space="preserve">
+    <value>An unexpected error occured while disposing of a journaler; error to follow.</value>
   </data>
   <data name="Error_UnrecognizedEncoding" xml:space="preserve">
     <value>Encountered an unrecognized encoding: {0}</value>

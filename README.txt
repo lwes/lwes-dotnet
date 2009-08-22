@@ -17,6 +17,22 @@ You should have received a copy of the Lesser GNU General Public License
 along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 
 __________________
+2009-08-21 Version 0.1.3520.28281 ALPHA - Dropped the dependency on the 
+	CommonServiceLocator
+	
+	I've chosen to remove the dependency on the CommonServiceLocator since the same
+	result can be achieved by introducing an adapter strategy (Org.Lwes.IoCAdapter). 
+	This approach is similar, but for developers downloading the source, they will be 
+	able to compile and go without regard to whether the codeplex library is already 
+	on their machine. I made this choice because I switch back and forth between two 
+	computers with quite different setups. Frankly I got tired of fixing the reference 
+	to the external library.
+	
+	VMs: My previous commentary talked a bit about issues related to virtual machine's 
+	virtual network connections. Since I wrote those notes I've had complete success 
+	by disabling the virtual network connections and using only bridged connections
+	to the underlying (physical) network. ~Phillip (cerebralkungfu)
+__________________
 2009-08-13 Version 0.1.* ALPHA - Happy Birthday to me: LWES .NET Binding (LWES.net).
 	
 	This is the initial check-in - it remains a work in progress. I've been working
