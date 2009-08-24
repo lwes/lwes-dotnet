@@ -20,7 +20,7 @@
 // LWES.net is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Lesser GNU General Public License for more details.
 //
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
@@ -88,11 +88,11 @@ namespace Org.Lwes
 		#region Methods
 
 		/// <summary>
-		/// Dequeues an item if it is available in the queue.
+		/// Tries to dequeue an item.
 		/// </summary>
 		/// <param name="item">the next available item in the queue, otherwise default(T).</param>
 		/// <returns><em>true</em> if an queued item was retreived by the call, otherwise <em>false</em></returns>
-		public bool Dequeue(out T item)
+		public bool TryDequeue(out T item)
 		{
 			NodeRec head;
 

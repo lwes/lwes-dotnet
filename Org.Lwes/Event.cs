@@ -12,7 +12,7 @@
 // LWES.net is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Lesser GNU General Public License for more details.
 //
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
@@ -20,6 +20,7 @@
 namespace Org.Lwes
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Net;
 	using System.Text;
 
@@ -31,12 +32,13 @@ namespace Org.Lwes
 	/// Event base class.
 	/// </summary>
 	[Serializable]
-	public struct Event
+	public class Event
 	{
 		#region Fields
 
-		IEventAttribute[] _attributes;
+		List<IEventAttribute> _attributes;
 		SupportedEncoding _encoding;
+		Object _sync = new Object();
 		EventTemplate _template;
 		bool _validating;
 
@@ -73,19 +75,7 @@ namespace Org.Lwes
 			_template = evTemplate;
 			_validating = validating;
 			_encoding = enc;
-			_attributes = new IEventAttribute[evTemplate.Count];
-		}
-
-		/// <summary>
-		/// Constructor used by mutators.
-		/// </summary>
-		private Event(EventTemplate t, bool validating, SupportedEncoding enc
-			, IEventAttribute[] attributes)
-		{
-			_template = t;
-			_validating = validating;
-			_encoding = enc;
-			_attributes = attributes;
+			_attributes = new List<IEventAttribute>(evTemplate.Count);
 		}
 
 		#endregion Constructors
@@ -147,7 +137,7 @@ namespace Org.Lwes
 		{
 			get
 			{
-				if (0 > ord || ord >= _attributes.Length)
+				if (0 > ord || ord >= _attributes.Count)
 					throw new ArgumentOutOfRangeException("ordinal");
 				return _attributes[ord];
 			}
@@ -182,7 +172,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's UInt16 value</param>
-		public Event SetValue(string name, UInt16 value)
+		public void SetValue(string name, UInt16 value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -194,7 +184,7 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
@@ -206,7 +196,7 @@ namespace Org.Lwes
 			}
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -214,7 +204,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's Int16 value</param>
-		public Event SetValue(string name, Int16 value)
+		public void SetValue(string name, Int16 value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -226,21 +216,21 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			// Allow for Encoding inherited from MetaInfoEvent
 			if (String.Equals(Constants.MetaEventInfoAttributes.Encoding.Name, name))
 			{
 				// encoding must be the first attribute (when encoded), make it so
-				return PrependAttribute(Constants.MetaEventInfoAttributes.Encoding, value);
+				PrependAttribute(Constants.MetaEventInfoAttributes.Encoding, value);
 			}
 
 			if (_validating)
 				throw new ArgumentOutOfRangeException("name", String.Format(Resources.Error_AttributeNotDefined, name));
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -248,7 +238,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's UInt32 value</param>
-		public Event SetValue(string name, UInt32 value)
+		public void SetValue(string name, UInt32 value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -260,14 +250,14 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
 				throw new ArgumentOutOfRangeException("name", String.Format(Resources.Error_AttributeNotDefined, name));
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -275,7 +265,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's Int32 value</param>
-		public Event SetValue(string name, Int32 value)
+		public void SetValue(string name, Int32 value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -287,14 +277,14 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
 				throw new ArgumentOutOfRangeException("name", String.Format(Resources.Error_AttributeNotDefined, name));
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -302,7 +292,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's String value</param>
-		public Event SetValue(string name, String value)
+		public void SetValue(string name, String value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -314,14 +304,14 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
 				throw new ArgumentOutOfRangeException("name", String.Format(Resources.Error_AttributeNotDefined, name));
 
 			// Adding a new attribute
-			return AppendAttribute( AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute( AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -329,7 +319,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's IPAddress value</param>
-		public Event SetValue(string name, IPAddress value)
+		public void SetValue(string name, IPAddress value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -341,7 +331,7 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
@@ -352,7 +342,7 @@ namespace Org.Lwes
 			}
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -360,7 +350,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's Int64 value</param>
-		public Event SetValue(string name, Int64 value)
+		public void SetValue(string name, Int64 value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -372,7 +362,7 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
@@ -383,7 +373,7 @@ namespace Org.Lwes
 			}
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -391,7 +381,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's UInt64 value</param>
-		public Event SetValue(string name, UInt64 value)
+		public void SetValue(string name, UInt64 value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -403,14 +393,14 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
 				throw new ArgumentOutOfRangeException("name", String.Format(Resources.Error_AttributeNotDefined, name));
 
 			// Adding a new attribute
-			return AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute(AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -418,7 +408,7 @@ namespace Org.Lwes
 		/// </summary>
 		/// <param name="name">the attribute's name</param>
 		/// <param name="value">the attribute's Boolean value</param>
-		public Event SetValue(string name, Boolean value)
+		public void SetValue(string name, Boolean value)
 		{
 			int ord;
 			AttributeTemplate attr;
@@ -430,14 +420,14 @@ namespace Org.Lwes
 				if (_validating && !attr.IsAssignable(value))
 					throw new AttributeNotSetException("name");
 
-				return Mutate(ord, _attributes[ord].Mutate(_template, value));
+				_attributes[ord] = _attributes[ord].Mutate(_template, value);
 			}
 
 			if (_validating)
 				throw new ArgumentOutOfRangeException("name", String.Format(Resources.Error_AttributeNotDefined, name));
 
 			// Adding a new attribute
-			return AppendAttribute( AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
+			AppendAttribute( AttributeTemplate.CreateTemplateForVariable(name, 0, value), value);
 		}
 
 		/// <summary>
@@ -687,38 +677,38 @@ namespace Org.Lwes
 				{
 					Int16 changeEncoding = LwesSerializer.ReadInt16(buffer, ref ofs);
 					bodyDecoder = Constants.GetEncoding(changeEncoding).GetDecoder();
-					ev = ev.SetValue(Constants.MetaEventInfoAttributes.Encoding.Name, changeEncoding);
+					ev.SetValue(Constants.MetaEventInfoAttributes.Encoding.Name, changeEncoding);
 				}
 				else
 				{
 					switch (attributeTokenType)
 					{
 						case TypeToken.UINT16:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadUInt16(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadUInt16(buffer, ref ofs));
 							break;
 						case TypeToken.INT16:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadInt16(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadInt16(buffer, ref ofs));
 							break;
 						case TypeToken.UINT32:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadUInt32(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadUInt32(buffer, ref ofs));
 							break;
 						case TypeToken.INT32:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadInt32(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadInt32(buffer, ref ofs));
 							break;
 						case TypeToken.STRING:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadString(buffer, ref ofs, bodyDecoder));
+							ev.SetValue(attributeName, LwesSerializer.ReadString(buffer, ref ofs, bodyDecoder));
 							break;
 						case TypeToken.IP_ADDR:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadIPAddress(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadIPAddress(buffer, ref ofs));
 							break;
 						case TypeToken.INT64:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadInt64(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadInt64(buffer, ref ofs));
 							break;
 						case TypeToken.UINT64:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadUInt64(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadUInt64(buffer, ref ofs));
 							break;
 						case TypeToken.BOOLEAN:
-							ev = ev.SetValue(attributeName, LwesSerializer.ReadBoolean(buffer, ref ofs));
+							ev.SetValue(attributeName, LwesSerializer.ReadBoolean(buffer, ref ofs));
 							break;
 					}
 				}
@@ -741,60 +731,60 @@ namespace Org.Lwes
 			 * encoding for strings if present (may differ from the
 			 * encoding used for EVENTWORD and ATTRIBUTEWORD(s)
 			 */
-
 			int count = 0, ofs = offset;
 			Encoder utf8 = Constants.DefaultEncoding.GetEncoder();
-			Encoder bodyEncoder = Constants.GetEncoding((short)_encoding).GetEncoder();
 
-			// Encode the EVENTWORD + attribute-count
-			_template.BinaryEncode(buffer, ref ofs);
-
-			// All of the template and dynamic attributes are encoded...
-			for (int i = 0; i < _attributes.Length; i++)
+			lock (_sync)
 			{
-				 count += _attributes[i].BinaryEncode(buffer, ref ofs, bodyEncoder);
+				Encoder bodyEncoder = Constants.GetEncoding((short)_encoding).GetEncoder();
+
+				// Encode the EVENTWORD + attribute-count
+				_template.BinaryEncode(buffer, ref ofs);
+
+				// All of the template and dynamic attributes are encoded...
+				for (int i = 0; i < _attributes.Count; i++)
+				{
+					count += _attributes[i].BinaryEncode(buffer, ref ofs, bodyEncoder);
+				}
 			}
 
 			offset = ofs;
+
 			return count;
 		}
 
 		internal int CalculateEncodedByteCount()
 		{
-			Encoding enc = Constants.GetEncoding((short)_encoding);
-			int count = _template.GetByteCount();
-
-			// All of the template and dynamic attributes are encoded...
-			for(int i = 0; i < _attributes.Length; i++)
+			lock (_sync)
 			{
-				count += _attributes[i].GetByteCount(enc);
+				Encoding enc = Constants.GetEncoding((short)_encoding);
+				int count = _template.GetByteCount();
+
+				// All of the template and dynamic attributes are encoded...
+				foreach (var a in _attributes)
+				{
+					count += a.GetByteCount(enc);
+				}
+				return count;
 			}
-			return count;
 		}
 
-		private Event AppendAttribute<T>(AttributeTemplate attr, T value)
+		private void AppendAttribute<T>(AttributeTemplate attr, T value)
 		{
-			EventTemplate et = _template.AppendAttributes(attr);
-			IEventAttribute[] attributes = new IEventAttribute[_attributes.Length + 1];
-			Array.Copy(_attributes, attributes, _attributes.Length);
-			attributes[attributes.Length - 1] = new EventAttribute<T>(attr, value);
-			return new Event(et, _validating, _encoding, attributes);
+			lock (_sync)
+			{
+				_template = _template.AppendAttributes(attr);
+				_attributes.Add(new EventAttribute<T>(attr, value));
+			}
 		}
 
-		private Event Mutate(int ord, IEventAttribute attr)
+		private void PrependAttribute<T>(AttributeTemplate attr, T value)
 		{
-			IEventAttribute[] copy = (IEventAttribute[])_attributes.Clone();
-			copy[ord] = attr;
-			return new Event(_template, _validating, _encoding, copy);
-		}
-
-		private Event PrependAttribute<T>(AttributeTemplate attr, T value)
-		{
-			EventTemplate et = _template.PrependAttributes(attr);
-			IEventAttribute[] attributes = new IEventAttribute[_attributes.Length + 1];
-			Array.Copy(_attributes, 0, attributes, 1, _attributes.Length);
-			attributes[0] = new EventAttribute<T>(attr, value);
-			return new Event(et, _validating, _encoding, attributes);
+			lock (_sync)
+			{
+				EventTemplate et = _template.PrependAttributes(attr);
+				_attributes.Insert(0, new EventAttribute<T>(attr, value));
+			}
 		}
 
 		#endregion Methods

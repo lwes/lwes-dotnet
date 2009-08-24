@@ -12,7 +12,7 @@
 // LWES.net is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Lesser GNU General Public License for more details.
 //
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
@@ -38,7 +38,7 @@ namespace Org.Lwes.Listener
 		#region Fields
 
 		const int CDisposeBackgroundThreadWaitTimeMS = 200;
-		const int Leader = 1;
+		const int LeadNotifier = 1;
 
 		List<RegistrationKey> _additions = new List<RegistrationKey>();
 		Action<RegistrationKey, Exception> _cacheHandleErrorsDelegate;
@@ -156,10 +156,10 @@ namespace Org.Lwes.Listener
 
 		internal void PerformEventArrival(Event ev)
 		{
-			int n = Interlocked.Increment(ref _notifiers);
+			int notifier = Interlocked.Increment(ref _notifiers);
 			try
 			{
-				if (n == Leader) _notifications.EnterUpgradeableReadLock();
+				if (notifier == LeadNotifier) _notifications.EnterUpgradeableReadLock();
 				else _notifications.EnterReadLock();
 				try
 				{
@@ -170,14 +170,14 @@ namespace Org.Lwes.Listener
 							Interlocked.Increment(ref _consolidationVotes);
 						}
 					}
-					if (n == Leader && Thread.VolatileRead(ref _consolidationVotes) > 0)
+					if (notifier == LeadNotifier && Thread.VolatileRead(ref _consolidationVotes) > 0)
 					{
 						SafeConsolidateRegistrations();
 					}
 				}
 				finally
 				{
-					if (n == Leader) _notifications.ExitUpgradeableReadLock();
+					if (notifier == LeadNotifier) _notifications.ExitUpgradeableReadLock();
 					else _notifications.ExitReadLock();
 				}
 			}
@@ -190,10 +190,10 @@ namespace Org.Lwes.Listener
 		internal GarbageHandlingVote PerformGarbageArrival(EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
 		{
 			GarbageHandlingVote strategy = GarbageHandlingVote.None;
-			int n = Interlocked.Increment(ref _notifiers);
+			int notifier = Interlocked.Increment(ref _notifiers);
 			try
 			{
-				if (n == Leader) _notifications.EnterUpgradeableReadLock();
+				if (notifier == LeadNotifier) _notifications.EnterUpgradeableReadLock();
 				else _notifications.EnterReadLock();
 				try
 				{
@@ -210,14 +210,14 @@ namespace Org.Lwes.Listener
 							strategy = strategyVote;
 						}
 					}
-					if (n == Leader && Thread.VolatileRead(ref _consolidationVotes) > 0)
+					if (notifier == LeadNotifier && Thread.VolatileRead(ref _consolidationVotes) > 0)
 					{
 						SafeConsolidateRegistrations();
 					}
 				}
 				finally
 				{
-					if (n == Leader) _notifications.ExitUpgradeableReadLock();
+					if (notifier == LeadNotifier) _notifications.ExitUpgradeableReadLock();
 					else _notifications.ExitReadLock();
 				}
 			}
@@ -284,11 +284,10 @@ namespace Org.Lwes.Listener
 
 		private void AddRegistration(RegistrationKey key)
 		{
-			int n = Interlocked.Increment(ref _notifiers);
-
+			int notifier = Interlocked.Increment(ref _notifiers);
 			try
 			{
-				if (n == Leader)
+				if (notifier == LeadNotifier)
 				{
 					if (_notifications.TryEnterWriteLock(20))
 					{
@@ -404,6 +403,9 @@ namespace Org.Lwes.Listener
 
 		private void UnsafeConsolidateRegistrations()
 		{
+			#if DEBUG
+			Debug.Assert(_notifications.IsWriteLockHeld);
+			#endif
 			_registrations = (from r in _registrations
 												where r.Status != EventSinkStatus.Canceled
 												select r).Concat(from r in _additions
@@ -533,14 +535,14 @@ namespace Org.Lwes.Listener
 				while (_notifierState.CurrentState < ListenerState.StopSignaled)
 				{
 					Event ev;
-					if (!_eventQueue.Dequeue(out ev))
+					if (!_eventQueue.TryDequeue(out ev))
 					{
 						lock (_notifierWaitObject)
 						{ // double-check that the queue is empty
 							// this strategy catches the race condition when the
 							// reciever queue's an event while we're acquiring the lock.
 							_notifierState.SetState(ListenerState.Suspending);
-							if (!_eventQueue.Dequeue(out ev))
+							if (!_eventQueue.TryDequeue(out ev))
 							{
 								_notifierState.SetState(ListenerState.Suspended);
 								Monitor.Wait(_notifierWaitObject);
@@ -622,10 +624,10 @@ namespace Org.Lwes.Listener
 				try
 				{
 					// For received events, set MetaEventInfo.ReciptTime, MetaEventInfo.SenderIP, and MetaEventInfo.SenderPort...
-					Event ev = Event.BinaryDecode(_db, buffer, offset, bytesTransferred)
-						.SetValue(Constants.MetaEventInfoAttributes.ReceiptTime.Name, Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow))
-						.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address)
-						.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
+					Event ev = Event.BinaryDecode(_db, buffer, offset, bytesTransferred);
+						ev.SetValue(Constants.MetaEventInfoAttributes.ReceiptTime.Name, Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow));
+						ev.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address);
+						ev.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
 					_eventQueue.Enqueue(ev);
 				}
 				catch (BadLwesDataException)
@@ -744,7 +746,7 @@ namespace Org.Lwes.Listener
 				try
 				{
 					ReceiveCapture input;
-					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _receiveQueue.Dequeue(out input))
+					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _receiveQueue.TryDequeue(out input))
 					{
 						GarbageHandlingVote handling = _listener.GetTrafficStrategyForEndpoint(input.RemoteEndPoint);
 						if (handling == GarbageHandlingVote.None)
@@ -775,7 +777,7 @@ namespace Org.Lwes.Listener
 				try
 				{
 					Event ev;
-					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _eventQueue.Dequeue(out ev))
+					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _eventQueue.TryDequeue(out ev))
 					{
 						_listener.PerformEventArrival(ev);
 					}
@@ -912,10 +914,10 @@ namespace Org.Lwes.Listener
 				try
 				{
 					// For received events, set MetaEventInfo.ReciptTime, MetaEventInfo.SenderIP, and MetaEventInfo.SenderPort...
-					Event ev = Event.BinaryDecode(_db, buffer, offset, bytesTransferred)
-						.SetValue(Constants.MetaEventInfoAttributes.ReceiptTime.Name, Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow))
-						.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address)
-						.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
+					Event ev = Event.BinaryDecode(_db, buffer, offset, bytesTransferred);
+						ev.SetValue(Constants.MetaEventInfoAttributes.ReceiptTime.Name, Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow));
+						ev.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address);
+						ev.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
 					_eventQueue.Enqueue(ev);
 				}
 				catch (BadLwesDataException)

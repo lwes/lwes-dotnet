@@ -12,7 +12,7 @@
 // LWES.net is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Lesser GNU General Public License for more details.
 //
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
@@ -49,8 +49,8 @@ namespace Org.Lwes
 		public static Event GenerateRandomEvent(string name, int maxAttributeCount, SupportedEncoding enc)
 		{
 			int attributesToGenerate = _rand.Next(1, maxAttributeCount);
-			Event original = new Event(name)
-				.SetValue("ID", Guid.NewGuid().ToString("B"));
+			Event ev = new Event(name);
+			ev.SetValue("ID", Guid.NewGuid().ToString("B"));
 			for (int i = 1; i < attributesToGenerate; i++)
 			{
 				String an = String.Concat("Attribute_", i.ToString("X03"));
@@ -58,37 +58,37 @@ namespace Org.Lwes
 				switch (tt)
 				{
 					case TypeToken.UINT16:
-						original = original.SetValue(an, (UInt16)_rand.Next(UInt16.MinValue, UInt16.MaxValue));
+						ev.SetValue(an, (UInt16)_rand.Next(UInt16.MinValue, UInt16.MaxValue));
 						break;
 					case TypeToken.INT16:
-						original = original.SetValue(an, (Int16)_rand.Next(Int16.MinValue, Int16.MaxValue));
+						ev.SetValue(an, (Int16)_rand.Next(Int16.MinValue, Int16.MaxValue));
 						break;
 					case TypeToken.UINT32:
-						original = original.SetValue(an, (UInt32)_rand.Next(0, Int32.MaxValue));
+						ev.SetValue(an, (UInt32)_rand.Next(0, Int32.MaxValue));
 						break;
 					case TypeToken.INT32:
-						original = original.SetValue(an, (Int32)_rand.Next(Int32.MinValue, Int32.MaxValue));
+						ev.SetValue(an, (Int32)_rand.Next(Int32.MinValue, Int32.MaxValue));
 						break;
 					case TypeToken.STRING:
-						original = original.SetValue(an, GenerateRandomString(_rand.Next(400), enc));
+						ev.SetValue(an, GenerateRandomString(_rand.Next(400), enc));
 						break;
 					case TypeToken.IP_ADDR:
 						byte[] addy = new byte[4];
 						_rand.NextBytes(addy);
-						original = original.SetValue(an, new IPAddress(addy));
+						ev.SetValue(an, new IPAddress(addy));
 						break;
 					case TypeToken.INT64:
-						original = original.SetValue(an, (Int32)_rand.Next(Int32.MinValue, Int16.MaxValue));
+						ev.SetValue(an, (Int32)_rand.Next(Int32.MinValue, Int16.MaxValue));
 						break;
 					case TypeToken.UINT64:
-						original = original.SetValue(an, (Int32)_rand.Next(0, Int32.MaxValue));
+						ev.SetValue(an, (Int32)_rand.Next(0, Int32.MaxValue));
 						break;
 					case TypeToken.BOOLEAN:
-						original = original.SetValue(an, (_rand.Next() % 2 == 0));
+						ev.SetValue(an, (_rand.Next() % 2 == 0));
 						break;
 				}
 			}
-			return original;
+			return ev;
 		}
 
 		/// <summary>

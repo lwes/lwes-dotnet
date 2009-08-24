@@ -12,7 +12,7 @@
 // LWES.net is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Lesser GNU General Public License for more details.
 //
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
@@ -397,7 +397,7 @@ namespace Org.Lwes.Emitter
 				try
 				{
 					byte[] data;
-					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _dataQueue.Dequeue(out data))
+					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _dataQueue.TryDequeue(out data))
 					{
 						_emitEP.SendToAsync(_sendToEP, data, data.Length, (op) =>
 						{
@@ -422,7 +422,7 @@ namespace Org.Lwes.Emitter
 				try
 				{
 					Event ev;
-					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _eventQueue.Dequeue(out ev))
+					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _eventQueue.TryDequeue(out ev))
 					{
 						_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
 						EnsureSenderIsActive();
@@ -450,7 +450,7 @@ namespace Org.Lwes.Emitter
 						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
 					}
 					byte[] b;
-					while (_dataQueue.Dequeue(out b))
+					while (_dataQueue.TryDequeue(out b))
 					{
 						BufferManager.ReleaseBuffer(b);
 					}
