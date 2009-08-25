@@ -3,7 +3,7 @@
 //
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+// COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
 //	 original .NET implementation
 //
 // LWES.net is free software: you can redistribute it and/or modify

@@ -9,7 +9,7 @@
 // I have modified the code to use C# idioms that I am fond of; previously
 // it resembled a port of C++ code and carried over those idioms.
 //
-// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+// COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
 //	 original .NET implementation
 //
 // LWES.net is free software: you can redistribute it and/or modify
