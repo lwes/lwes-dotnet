@@ -24,7 +24,7 @@ namespace Org.Lwes.Listener
 	/// <summary>
 	/// Represents the state of an event sink.
 	/// </summary>
-	public enum EventSinkStatus
+	public enum SinkStatus
 	{
 		/// <summary>
 		/// Indicates the event sink has been suspended and should not receive

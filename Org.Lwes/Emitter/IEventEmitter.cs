@@ -20,7 +20,7 @@
 namespace Org.Lwes.Emitter
 {
 	using System;
-	using System.IO;
+	using System.Net;
 	using System.Text;
 
 	using Org.Lwes.DB;
@@ -35,11 +35,27 @@ namespace Org.Lwes.Emitter
 	public interface IEventEmitter : IDisposable
 	{
 		/// <summary>
+		/// Initializes the emitter.
+		/// </summary>
+		void Initialize();
+
+		/// <summary>
+		/// The ip address to which events are emitted.
+		/// </summary>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has already been initialized</exception>
+		IPAddress Address
+		{
+			get; set;
+		}
+
+		/// <summary>
 		/// The character encoding used when performing event IO.
 		/// </summary>
-		Encoding Encoding
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has already been initialized</exception>
+		SupportedEncoding Encoding
 		{
 			get;
+			set;
 		}
 
 		/// <summary>
@@ -51,20 +67,33 @@ namespace Org.Lwes.Emitter
 		}
 
 		/// <summary>
+		/// The ip port to which events are emitted.
+		/// </summary>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has already been initialized</exception>
+		int Port
+		{
+			get; set;
+		}
+
+		/// <summary>
 		/// The event template database used by the emitter.
 		/// </summary>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has already been initialized</exception>
 		IEventTemplateDB TemplateDB
 		{
 			get;
+			set;
 		}
 
 		/// <summary>
 		/// Indicates whether events issued from the emitter will validate
-		/// when they are written to.
+		/// event contents.
 		/// </summary>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has already been initialized</exception>
 		bool Validate
 		{
 			get;
+			set;
 		}
 
 		/// <summary>
@@ -72,6 +101,7 @@ namespace Org.Lwes.Emitter
 		/// </summary>
 		/// <param name="eventName">the event type's name</param>
 		/// <returns>a new LWES event instance</returns>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has not been initialized</exception>
 		Event CreateEvent(string eventName);
 
 		/// <summary>
@@ -80,6 +110,7 @@ namespace Org.Lwes.Emitter
 		/// <param name="eventName">the event type's name</param>
 		/// <param name="enc">encoding used when performing IO on the event</param>
 		/// <returns>a new LWES event instance</returns>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has not been initialized</exception>
 		Event CreateEvent(string eventName, SupportedEncoding enc);
 
 		/// <summary>
@@ -88,6 +119,7 @@ namespace Org.Lwes.Emitter
 		/// <param name="eventName">the event type's name</param>
 		/// <param name="validate">whether the event is validated</param>
 		/// <returns>a new LWES event instance</returns>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has not been initialized</exception>
 		Event CreateEvent(string eventName, bool validate);
 
 		/// <summary>
@@ -97,12 +129,14 @@ namespace Org.Lwes.Emitter
 		/// <param name="validate">whether the event is validated</param>
 		/// <param name="enc">encoding used when performing IO on the event</param>
 		/// <returns>a new LWES event instance</returns>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has not been initialized</exception>
 		Event CreateEvent(string eventName, bool validate, SupportedEncoding enc);
 
 		/// <summary>
 		/// Emits an event to the event system.
 		/// </summary>
 		/// <param name="evt">the event being emitted</param>
+		/// <exception cref="System.InvalidOperationException">thrown if the emitter has not been initialized</exception>
 		void Emit(Event evt);
 	}
 }

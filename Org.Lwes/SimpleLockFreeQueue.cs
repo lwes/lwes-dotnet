@@ -88,6 +88,40 @@ namespace Org.Lwes
 		#region Methods
 
 		/// <summary>
+		/// Enqueues an item.
+		/// </summary>
+		/// <param name="item">The item to place in the queue</param>
+		public void Enqueue(T item)
+		{
+			Node node = new Node();
+			node.Value = item;
+
+			while (true)
+			{
+				NodeRec tail = _tail;
+				NodeRec next = tail.Node.Next;
+
+				if (tail.Count == _tail.Count && tail.Node == _tail.Node)
+				{
+					if (null == next.Node)
+					{
+						// Tail was pointing at the last node
+						if (CAS(ref tail.Node.Next, next, new NodeRec(node, next.Count + 1)))
+						{
+							break;
+						}
+					}
+					else
+					{
+						// tail was not pointing at the last node,
+						// try to swing Tail to the next node
+						CAS(ref _tail, tail, new NodeRec(next.Node, tail.Count + 1));
+					}
+				}
+			}
+		}
+
+		/// <summary>
 		/// Tries to dequeue an item.
 		/// </summary>
 		/// <param name="item">the next available item in the queue, otherwise default(T).</param>
@@ -140,40 +174,6 @@ namespace Org.Lwes
 
 			item = default(T);
 			return false;
-		}
-
-		/// <summary>
-		/// Enqueues an item.
-		/// </summary>
-		/// <param name="item">The item to place in the queue</param>
-		public void Enqueue(T item)
-		{
-			Node node = new Node();
-			node.Value = item;
-
-			while (true)
-			{
-				NodeRec tail = _tail;
-				NodeRec next = tail.Node.Next;
-
-				if (tail.Count == _tail.Count && tail.Node == _tail.Node)
-				{
-					if (null == next.Node)
-					{
-						// Tail was pointing at the last node
-						if (CAS(ref tail.Node.Next, next, new NodeRec(node, next.Count + 1)))
-						{
-							break;
-						}
-					}
-					else
-					{
-						// tail was not pointing at the last node,
-						// try to swing Tail to the next node
-						CAS(ref _tail, tail, new NodeRec(next.Node, tail.Count + 1));
-					}
-				}
-			}
 		}
 
 		private bool CAS(ref NodeRec destination, NodeRec compared, NodeRec exchange)

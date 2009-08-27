@@ -41,15 +41,22 @@ namespace Org.Lwes.Listener
 		/// <param name="multicastPort"></param>
 		/// <param name="parallel"></param>
 		/// <param name="garbageHandling"></param>
-		public void Initialize(IEventTemplateDB db
+		public void InitializeAll(IEventTemplateDB db
 			, IPAddress multicastAddress
 			, int multicastPort
 			, bool parallel
 			, ListenerGarbageHandling garbageHandling)
 		{
-			if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+			TemplateDB = db;
+			Address = multicastAddress;
+			Port = multicastPort;
+			IsParallel = parallel;
+			Initialize();
+		}
 
-			base.Initialize(db, new IPEndPoint(multicastAddress, multicastPort), parallel, garbageHandling,
+		protected override void  PerformInitialization()
+		{
+			base.FinishInitialize(new IPEndPoint(Address, Port),
 				(s, e) =>
 				{
 					s.SetSocketOption(SocketOptionLevel.Udp, SocketOptionName.NoDelay, 1);

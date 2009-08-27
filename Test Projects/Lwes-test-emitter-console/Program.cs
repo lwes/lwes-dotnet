@@ -1,7 +1,7 @@
 ﻿/// 
 /// This file is part of the LWES .NET Binding (LWES.net)
 ///
-/// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+/// COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
 ///   original .NET implementation
 /// 
 /// LWES.net is free software: you can redistribute it and/or modify
@@ -25,6 +25,8 @@ namespace Org.Lwes.Tests
 
 	using Org.Lwes;
 	using Org.Lwes.Emitter;
+	using Org.Lwes.DB;
+	using System.Net;
 
 	class Program
 	{
@@ -32,15 +34,12 @@ namespace Org.Lwes.Tests
 
 		static void Main(string[] args)
 		{
-			// Use emit some trace messages - these will route through
-			// the configured LwesTraceListener to the LWES.
-			// This is how most DotNet applications will interact with LWES.
-			TraceSource ts = new TraceSource("Console");
-			ts.TraceEvent(TraceEventType.Verbose, 1, "Starting Lwes-test-emitter-console");
+			Diagnostics.TraceEvent(typeof(Program), TraceEventType.Verbose, 
+				1, "Starting Lwes-test-emitter-console");
 
-			var control = new { NumberOfEventsToEmit = 10000, MaxNumberOfAttributes = 44 };
+			var control = new { NumberOfEventsToEmit = 100000, MaxNumberOfAttributes = 25 };
 
-			Console.WriteLine(String.Format("LWES EventEmitter - \r\nThis console will generate and emit {0} random events to the LWES"
+			Console.WriteLine(String.Format("LWES EventEmitter - \r\nThis console will generate and emit {0} random events to the Light Weight Event System"
 				, control.NumberOfEventsToEmit.ToString("N0")));
 
 			Thread.Sleep(1000);
@@ -48,7 +47,7 @@ namespace Org.Lwes.Tests
 			// Create an emitter - this is the emitter named in the lwes/emitters
 			// configuration node.
 			using (IEventEmitter emitter = EventEmitter.CreateDefault())
-			{
+			{				
 				for (int i = 0; i < control.NumberOfEventsToEmit; i++)
 				{
 					Event ev = EventUtils.GenerateRandomEvent(String.Concat("TestEvent_", i), control.MaxNumberOfAttributes, SupportedEncoding.UTF_8);
@@ -56,7 +55,8 @@ namespace Org.Lwes.Tests
 				}
 			}
 
-			ts.TraceEvent(TraceEventType.Verbose, 2, "Exiting Lwes-test-emitter-console");
+			Diagnostics.TraceEvent(typeof(Program), TraceEventType.Verbose,
+				2, "Stopping Lwes-test-emitter-console");
 		}
 
 		#endregion Methods

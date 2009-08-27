@@ -29,31 +29,58 @@ namespace Org.Lwes.Emitter
 	/// </summary>
 	public class MulticastEventEmitter : EventEmitterBase
 	{
+		#region Properties
+
+		/// <summary>
+		/// The time-to-live setting for the multicast traffic.
+		/// </summary>
+		public int MulticastTimeToLive
+		{
+			get; private set;
+		}
+
+		#endregion Properties
+
 		#region Methods
 
 		/// <summary>
 		/// Initializes the emitter.
 		/// </summary>
 		/// <param name="enc">indicates the encoding to user for character data</param>
-		/// <param name="performValidation">indicates whether the emitter performs validation</param>
+		/// <param name="validate">indicates whether the emitter performs validation</param>
 		/// <param name="db">tempate db used to create events</param>
 		/// <param name="multicastAddress">a multicast address where events will be emitted</param>
 		/// <param name="multicastPort">a multicast port where events will be emitted</param>
 		/// <param name="multicastTtl">the time-to-live used during multicast</param>
-		/// <param name="useParallelEmit">indicates whether the emitter should parallelize the
-		/// event emitting</param>
-		public void Initialize(SupportedEncoding enc, bool performValidation, IEventTemplateDB db
+		/// <param name="parallel">indicates whether the emitter can use a parallel strategy
+		/// when emitting</param>
+		public void InitializeAll(SupportedEncoding enc, bool validate, IEventTemplateDB db
 			, IPAddress multicastAddress
 			, int multicastPort
 			, int multicastTtl
-			, bool useParallelEmit)
+			, bool parallel)
 		{
-			base.Initialize(enc, performValidation, db, new IPEndPoint(multicastAddress, multicastPort),
-				useParallelEmit, (s, e) =>
+			Encoding = enc;
+			Validate = validate;
+			TemplateDB = db;
+			Address = multicastAddress;
+			Port = multicastPort;
+			MulticastTimeToLive = multicastTtl;
+			IsParallel = parallel;
+			base.Initialize();
+		}
+
+		/// <summary>
+		/// Performs initialization for multicast.
+		/// </summary>
+		protected override void PerformInitialization()
+		{
+			base.FinishInitialize(new IPEndPoint(Address, Port),
+				(s, e) =>
 				{
 					s.SetSocketOption(SocketOptionLevel.Udp, SocketOptionName.NoDelay, 1);
 					s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-					s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
+					s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, MulticastTimeToLive);
 					s.Connect(e); // TODO: Verify whether this is necessary when using Socket.SendTo().
 				});
 		}

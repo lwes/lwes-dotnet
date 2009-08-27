@@ -1,7 +1,7 @@
 ﻿//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT© 2009, Phillip Clark (cerebralkungfu[at*g mail[dot*com)
+// COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
 //	 original .NET implementation
 //
 // LWES.net is free software: you can redistribute it and/or modify
@@ -20,9 +20,6 @@
 namespace Org.Lwes.Tests
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Text;
 	using System.Threading;
 
 	using Org.Lwes;
@@ -31,54 +28,38 @@ namespace Org.Lwes.Tests
 	class Program
 	{
 		#region Methods
-
+				
 		static void Main(string[] args)
 		{
 			using (IEventListener listener = EventListener.CreateDefault())
 			{
-				EventSink sink = new EventSink();
-				listener.RegisterEventSink(sink).Activate();
-				ManualResetEvent printerExited = new ManualResetEvent(false);
 				bool userChoseToExit = false;
-				int receivedEvents = 0;
+				int eventCount = 0, incomingCount = 0;
+				Event mostRecent = default(Event);
 
 				Console.WriteLine("LWES EventListener -\r\n  This console will continue to queue and print LWES events until\r\n  the user types 'exit' followed by a carriage return.");
-
-				Object consoleWriteLock = new Object();
-
-				ThreadPool.QueueUserWorkItem(new WaitCallback((s) =>
-				{
-					Event ev;
-					while (!userChoseToExit)
+				
+				listener.OnEventArrived += (sender, ev)	=>
 					{
-						if (sink.Events.TryDequeue(out ev))
-						{
-							lock (consoleWriteLock)
-							{
-								Console.WriteLine(ev.ToString(true));
-							}
-							receivedEvents++;
-						}
-						else
-						{
-							Thread.Sleep(200);
-						}
-					}
-					printerExited.Set();
-				}));
+						Thread.MemoryBarrier();
+						mostRecent = ev;
+						Thread.MemoryBarrier();
+						Interlocked.Increment(ref incomingCount);
+					};
 
 				ThreadPool.QueueUserWorkItem(new WaitCallback((s) =>
 				{
 					while (!userChoseToExit)
 					{
-						int eventCount = receivedEvents;
 						Thread.Sleep(2000);
-						if (eventCount < receivedEvents)
+						if (eventCount < Thread.VolatileRead(ref incomingCount))
 						{
-							lock (consoleWriteLock)
-							{
-								Console.WriteLine("LWES EventListener -\r\n  This console will continue to queue and print LWES events until\r\n  the user types 'exit' followed by a carriage return.");
-							}
+							eventCount = Thread.VolatileRead(ref incomingCount);
+							Thread.MemoryBarrier();
+							Event mr = mostRecent;
+							Thread.MemoryBarrier();
+							Console.WriteLine(mr.ToString(true));
+							Console.WriteLine("Events received: {0}. Type 'exit' and hit the <return> key to exit.", eventCount.ToString("N0"));							
 						}
 					}
 				}));
@@ -88,54 +69,17 @@ namespace Org.Lwes.Tests
 				{
 					input = Console.ReadLine();
 				} while (!String.Equals(input, "exit", StringComparison.CurrentCultureIgnoreCase));
+				
 				userChoseToExit = true;
 				listener.Dispose();
 
-				printerExited.WaitOne();
+				Thread.Sleep(200);
+				Console.WriteLine("Final event count: {0}", incomingCount.ToString("N0"));
+				Thread.Sleep(2000);
+
 			}
 		}
 
 		#endregion Methods
-
-		#region Nested Types
-
-		class EventSink : IEventSink
-		{
-			#region Fields
-
-			SimpleLockFreeQueue<Event> _incomingEvents = new SimpleLockFreeQueue<Event>();
-
-			#endregion Fields
-
-			#region Properties
-
-			public SimpleLockFreeQueue<Event> Events
-			{
-				get { return _incomingEvents; }
-			}
-
-			public bool IsThreadSafe
-			{
-				get { return false; }
-			}
-
-			#endregion Properties
-
-			#region Methods
-
-			public void HandleEventArrival(IEventSinkRegistrationKey key, Event ev)
-			{
-				_incomingEvents.Enqueue(ev);
-			}
-
-			public GarbageHandlingVote HandleGarbageData(IEventSinkRegistrationKey key, System.Net.EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
-			{
-				return GarbageHandlingVote.IgnoreAllTrafficFromEndpoint;
-			}
-
-			#endregion Methods
-		}
-
-		#endregion Nested Types
 	}
 }

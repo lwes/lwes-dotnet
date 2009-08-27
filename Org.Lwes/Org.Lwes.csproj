@@ -56,6 +56,9 @@
     <Compile Include="DB\EventTemplateDB.cs" />
     <Compile Include="DB\FilePathEventTemplateDB.cs" />
     <Compile Include="Config\EmitterConfigurationSection.cs" />
+    <Compile Include="Listener\Delegates.cs" />
+    <Compile Include="Listener\IGarbageSink.cs" />
+    <Compile Include="Listener\SinkRegistrations.cs" />
     <Compile Include="Trace\Diagnostics.cs" />
     <Compile Include="Emitter\EventEmitter.cs" />
     <Compile Include="Emitter\MulticastEventEmitter.cs" />
@@ -82,7 +85,7 @@
     <Compile Include="Listener\IEventListener.cs" />
     <Compile Include="Listener\EventListenerBase.cs" />
     <Compile Include="Listener\IEventSink.cs" />
-    <Compile Include="Listener\IEventSinkRegistrationKey.cs" />
+    <Compile Include="Listener\ISinkRegistrationKey.cs" />
     <Compile Include="Listener\MulticastEventListener.cs" />
     <Compile Include="Listener\UnicastEventListener.cs" />
     <Compile Include="LwesTraceListener.cs" />

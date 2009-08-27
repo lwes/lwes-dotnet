@@ -35,9 +35,8 @@
 
 			// Mock an IEventSink that records the incomming event...
 			Mock<IEventSink> mock = new Mock<IEventSink>();
-			mock.SetupGet(sink => sink.IsThreadSafe).Returns(true);
-			mock.Setup(framework => framework.HandleEventArrival(It.IsAny<IEventSinkRegistrationKey>(), It.IsAny<Event>()))
-				.Callback<IEventSinkRegistrationKey, Event>((k, ev) =>
+			mock.Setup(framework => framework.HandleEventArrival(It.IsAny<ISinkRegistrationKey>(), It.IsAny<Event>()))
+				.Callback<ISinkRegistrationKey, Event>((k, ev) =>
 				{
 					receivedEvent = ev;
 					done = true;

@@ -24,7 +24,7 @@ namespace Org.Lwes.Listener
 	/// <summary>
 	/// Registration key for event sinks.
 	/// </summary>
-	public interface IEventSinkRegistrationKey
+	public interface ISinkRegistrationKey
 	{
 		/// <summary>
 		/// An opaque handback object.
@@ -46,7 +46,7 @@ namespace Org.Lwes.Listener
 		/// <summary>
 		/// The status of the event sink.
 		/// </summary>
-		EventSinkStatus Status
+		SinkStatus Status
 		{
 			get;
 		}
@@ -62,11 +62,6 @@ namespace Org.Lwes.Listener
 		/// receive event or garbage notification.
 		/// </summary>
 		void Cancel();
-
-		/// <summary>
-		/// Disables garbage notification for a sink.
-		/// </summary>		
-		void DisableGarbageNotification();
 
 		/// <summary>
 		/// Suspends the event sink. An event sink whose registration is suspended will not

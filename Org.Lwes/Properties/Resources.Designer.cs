@@ -106,11 +106,11 @@ namespace Org.Lwes.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An event sink threw an uncaught exception. Registration key and data are attached..
+        ///   Looks up a localized string similar to An event handler threw an uncaught exception. See the attached exception..
         /// </summary>
-        internal static string Error_EventSinkThrewException {
+        internal static string Error_EventHandlerThrewUncaughtException {
             get {
-                return ResourceManager.GetString("Error_EventSinkThrewException", resourceCulture);
+                return ResourceManager.GetString("Error_EventHandlerThrewUncaughtException", resourceCulture);
             }
         }
         
@@ -129,6 +129,15 @@ namespace Org.Lwes.Properties {
         internal static string Error_NotYetInitialized {
             get {
                 return ResourceManager.GetString("Error_NotYetInitialized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A sink threw an uncaught exception. Registration key and data are attached..
+        /// </summary>
+        internal static string Error_SinkThrewUncaughtException {
+            get {
+                return ResourceManager.GetString("Error_SinkThrewUncaughtException", resourceCulture);
             }
         }
         

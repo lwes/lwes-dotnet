@@ -113,9 +113,11 @@ namespace Org.Lwes
 				}
 				catch (Exception e)
 				{
+					// Set the failure first so we don't recurse inadvertently
+					__hardFailOnAccessingIoC = true;
+
 					Diagnostics.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
 					/* IoC failure - remember this and stop trying */
-					__hardFailOnAccessingIoC = true;
 				}
 			}
 			instance = default(T);

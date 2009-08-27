@@ -77,7 +77,7 @@ namespace Org.Lwes.Emitter
 			if (namedConfig.UseMulticast)
 			{
 				MulticastEventEmitter mee = new MulticastEventEmitter();
-				mee.Initialize(namedConfig.Encoding, false, EventTemplateDB.CreateDefault(),
+				mee.InitializeAll(namedConfig.Encoding, false, EventTemplateDB.CreateDefault(),
 					IPAddress.Parse(namedConfig.AddressString), namedConfig.Port,
 					namedConfig.MulticastTimeToLive, namedConfig.UseParallelEmit);
 				return mee;
@@ -113,7 +113,7 @@ namespace Org.Lwes.Emitter
 		private static IEventEmitter CreateFallbackEmitter()
 		{
 			MulticastEventEmitter emitter = new MulticastEventEmitter();
-			emitter.Initialize(SupportedEncoding.Default
+			emitter.InitializeAll(SupportedEncoding.Default
 				, Constants.DefaultPerformValidation
 				, EventTemplateDB.CreateDefault()
 				, Constants.DefaultMulticastAddress

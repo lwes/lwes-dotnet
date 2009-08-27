@@ -47,9 +47,16 @@ namespace Org.Lwes.Listener
 			, bool parallel
 			, ListenerGarbageHandling garbageHandling)
 		{
-			if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+			TemplateDB = db;
+			Address = address;
+			Port = port;
+			IsParallel = parallel;
+			Initialize();
+		}
 
-			base.Initialize(db, new IPEndPoint(address, port), parallel, garbageHandling,
+		protected override void  PerformInitialization()
+		{			
+			base.FinishInitialize(new IPEndPoint(Address, Port), 
 				(s, e) =>
 				{
 					s.SetSocketOption(SocketOptionLevel.Udp, SocketOptionName.NoDelay, 1);

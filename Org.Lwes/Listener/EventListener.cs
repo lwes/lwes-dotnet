@@ -74,7 +74,7 @@ namespace Org.Lwes.Listener
 			if (namedConfig.UseMulticast)
 			{
 				MulticastEventListener mee = new MulticastEventListener();
-				mee.Initialize(EventTemplateDB.CreateDefault(),
+				mee.InitializeAll(EventTemplateDB.CreateDefault(),
 					IPAddress.Parse(namedConfig.AddressString),
 					namedConfig.Port,
 					namedConfig.UseParallelEmit,
@@ -113,7 +113,7 @@ namespace Org.Lwes.Listener
 		private static IEventListener CreateFallbackListener()
 		{
 			MulticastEventListener emitter = new MulticastEventListener();
-			emitter.Initialize(EventTemplateDB.CreateDefault()
+			emitter.InitializeAll(EventTemplateDB.CreateDefault()
 				, Constants.DefaultMulticastAddress
 				, Constants.CDefaultMulticastPort
 				, true

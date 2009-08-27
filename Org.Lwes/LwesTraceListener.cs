@@ -218,7 +218,7 @@ namespace Org.Lwes
 								IPAddress addy = Address ?? Constants.DefaultMulticastAddress;
 								int port = (Port == 0) ? Constants.CDefaultMulticastPort : Port;
 								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;
-								emitter.Initialize(SupportedEncoding.Default,
+								emitter.InitializeAll(SupportedEncoding.Default,
 			#if DEBUG
 			 true,
 			#else

@@ -38,7 +38,7 @@ namespace Org.Lwes.Journaler
 		#region Fields
 
 		IEventListener _listener;
-		IEventSinkRegistrationKey _registrationKey;
+		ISinkRegistrationKey _registrationKey;
 		Status<JournalerState> _status;
 
 		#endregion Fields
@@ -117,16 +117,11 @@ namespace Org.Lwes.Journaler
 			}
 		}
 
-		void IEventSink.HandleEventArrival(IEventSinkRegistrationKey key, Event ev)
+		void IEventSink.HandleEventArrival(ISinkRegistrationKey key, Event ev)
 		{
 			OnHandleEventArrival(key, ev);
 		}
-
-		GarbageHandlingVote IEventSink.HandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
-		{
-			return PerformHandleGarbageData(key, remoteEndPoint, priorGarbageCountForEndpoint, garbage);
-		}
-
+		
 		/// <summary>
 		/// Initializes the journaler.
 		/// </summary>
@@ -218,7 +213,7 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		/// <param name="key">the journaler's registration key with the underlying IEventListener</param>
 		/// <param name="ev">an LWES event</param>
-		protected abstract void OnHandleEventArrival(IEventSinkRegistrationKey key, Event ev);
+		protected abstract void OnHandleEventArrival(ISinkRegistrationKey key, Event ev);
 
 		/// <summary>
 		/// Handles garbage data. Derived classes may override this method to handle the
@@ -229,7 +224,7 @@ namespace Org.Lwes.Journaler
 		/// <param name="priorGarbageCountForEndpoint">Number of times the endpoint has sent garbage</param>
 		/// <param name="garbage">The garbage data as a byte array (this is a copy)</param>
 		/// <returns>The journaler's vote as to how future garbage data should be handled (on a per-endpoint basis)</returns>
-		protected virtual GarbageHandlingVote PerformHandleGarbageData(IEventSinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
+		protected virtual GarbageHandlingVote PerformHandleGarbageData(ISinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
 		{
 			return GarbageHandlingVote.Default;
 		}
@@ -251,7 +246,7 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		/// <param name="registrationKey"></param>
 		/// <returns></returns>
-		protected virtual bool PerfromStart(IEventSinkRegistrationKey registrationKey)
+		protected virtual bool PerfromStart(ISinkRegistrationKey registrationKey)
 		{
 			if (registrationKey == null) throw new ArgumentNullException("registrationKey");
 			return registrationKey.Activate();
@@ -268,7 +263,7 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		/// <param name="registrationKey"></param>
 		/// <returns></returns>
-		protected virtual bool PerfromStop(IEventSinkRegistrationKey registrationKey)
+		protected virtual bool PerfromStop(ISinkRegistrationKey registrationKey)
 		{
 			if (registrationKey == null) throw new ArgumentNullException("registrationKey");
 			registrationKey.Cancel();

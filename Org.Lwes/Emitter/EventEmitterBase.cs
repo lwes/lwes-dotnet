@@ -38,12 +38,14 @@ namespace Org.Lwes.Emitter
 
 		const int CDisposeBackgroundThreadWaitTimeMS = 200;
 
+		IPAddress _address;
 		IEventTemplateDB _db;
 		IEmitter _emitter;
 		SupportedEncoding _enc;
 		Encoding _encoding;
-		int _initialized;
-		bool _performValidation;
+		Status<EmitterState> _status;
+		int _port;
+		bool _validate;
 
 		#endregion Fields
 
@@ -98,11 +100,38 @@ namespace Org.Lwes.Emitter
 		#region Properties
 
 		/// <summary>
+		/// Indicates whether the emitter is using a parallel emit strategy.
+		/// </summary>
+		protected bool IsParallel { get; set; }
+
+		/// <summary>
+		/// The ip address to which events are emitted.
+		/// </summary>
+		public IPAddress Address
+		{
+			get
+			{
+				return _address;
+			}
+			set
+			{
+				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+				_address = value;
+			}
+		}
+
+		/// <summary>
 		/// The character encoding used when performing event IO.
 		/// </summary>
-		public Encoding Encoding
+		public SupportedEncoding Encoding
 		{
-			get { return _encoding; }
+			get { return _enc; }
+			set
+			{
+				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+				_enc = value;
+				_encoding = Constants.GetEncoding((short)value);
+			}
 		}
 
 		/// <summary>
@@ -110,15 +139,36 @@ namespace Org.Lwes.Emitter
 		/// </summary>
 		public virtual bool IsInitialized
 		{
-			get { return Thread.VolatileRead(ref _initialized) == (int)EmitterState.Active; }
+			get { return _status.CurrentState == EmitterState.Active; }
 		}
 
 		/// <summary>
-		/// The event template database used by the factory.
+		/// The ip port to which events are emitted.
+		/// </summary>
+		public int Port
+		{
+			get
+			{
+				return _port;
+			}
+			set
+			{
+				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+				_port = value;
+			}
+		}
+
+		/// <summary>
+		/// The event template database used when creating events.
 		/// </summary>
 		public IEventTemplateDB TemplateDB
 		{
 			get { return _db; }
+			set
+			{
+				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+				_db = value;
+			}
 		}
 
 		/// <summary>
@@ -127,7 +177,12 @@ namespace Org.Lwes.Emitter
 		/// </summary>
 		public bool Validate
 		{
-			get { return _performValidation; }
+			get { return _validate; }
+			set
+			{
+				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+				_validate = value;
+			}
 		}
 
 		#endregion Properties
@@ -146,7 +201,7 @@ namespace Org.Lwes.Emitter
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
 			Event result;
-			if (!_db.TryCreateEvent(eventName, out result, _performValidation, _enc))
+			if (!_db.TryCreateEvent(eventName, out result, _validate, _enc))
 			{
 				result = new Event(new EventTemplate(false, eventName), false, _enc);
 			}
@@ -166,7 +221,7 @@ namespace Org.Lwes.Emitter
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
 			Event result;
-			if (!_db.TryCreateEvent(eventName, out result, _performValidation, enc))
+			if (!_db.TryCreateEvent(eventName, out result, _validate, enc))
 			{
 				result = new Event(new EventTemplate(false, eventName), false, enc);
 			}
@@ -246,37 +301,52 @@ namespace Org.Lwes.Emitter
 		/// <summary>
 		/// Initializes the emitter.
 		/// </summary>
-		/// <param name="enc">encoding the emitter should use for character data.</param>
-		/// <param name="performValidation">whether the emitter validates emitted messages</param>
-		/// <param name="db">a template DB to use when creating events</param>
-		/// <param name="endpoint">An IP endpoint where events will be emitted</param>
-		/// <param name="parallel">indicates whether the emitter will use the parallel strategy</param>
-		/// <param name="finishSocket">callback method used to finish setup of the socket</param>
-		protected void Initialize(SupportedEncoding enc, bool performValidation, IEventTemplateDB db
-			, IPEndPoint endpoint, bool parallel, Action<Socket, IPEndPoint> finishSocket)
+		public void Initialize()
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+
+			if (_status.SetStateIfLessThan(EmitterState.Initializing, EmitterState.Initializing))
+			{
+				try
+				{
+					PerformInitialization();
+				}
+				finally
+				{
+					_status.TryTransition(EmitterState.Active, EmitterState.Initializing);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Performs initialization of the emitter. Derived classes must implement this method
+		/// and subsequently call the <em>FinishInitialize</em> method of the base class.
+		/// </summary>
+		protected abstract void PerformInitialization();
+
+		/// <summary>
+		/// Finishes initialization of the emitter.
+		/// </summary>
+		/// <param name="endpoint">An IP endpoint where events will be emitted</param>
+		/// <param name="finishSocket">callback method used to finish setup of the socket</param>
+		protected void FinishInitialize(IPEndPoint endpoint, Action<Socket, IPEndPoint> finishSocket)
+		{
 			if (endpoint == null) throw new ArgumentNullException("endpoint");
 			if (finishSocket == null) throw new ArgumentNullException("finishSocket");
 
-			if (Interlocked.CompareExchange(ref _initialized, (int)EmitterState.Initializing, (int)EmitterState.Unknown) == (int)EmitterState.Unknown)
-			{
-				_enc = enc;
-				_encoding = Constants.GetEncoding((short)enc);
-				_performValidation = performValidation;
-				_db = db;
+			if (_status.CurrentState != EmitterState.Initializing)
+				throw new InvalidOperationException("only valid while initialzing");
+			
+			if (_db == null) throw new InvalidOperationException("TemplateDB must be set before initialization");
+			if (_encoding == null) throw new InvalidOperationException("Encoding must be set before initialization");
 
-				IEmitter emitter = (parallel)
-					? (IEmitter)new ParallelEmitter()
-					: (IEmitter)new DirectEmitter();
+			IEmitter emitter = (IsParallel)
+				? (IEmitter)new ParallelEmitter()
+				: (IEmitter)new DirectEmitter();
 
-				emitter.Start(db, endpoint, finishSocket);
+			emitter.Start(_db, endpoint, finishSocket);
 
-				_emitter = emitter;
-
-				Thread.VolatileWrite(ref _initialized, (int)EmitterState.Active);
-			}
-			else throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+			_emitter = emitter;
 		}
 
 		#endregion Methods
@@ -351,10 +421,8 @@ namespace Org.Lwes.Emitter
 			IEventTemplateDB _db;
 			UdpEndpoint _emitEP;
 			Status<EmitterState> _emitterState;
-			SimpleLockFreeQueue<Event> _eventQueue = new SimpleLockFreeQueue<Event>();
 			EndPoint _sendToEP;
 			int _senders;
-			int _serializers;
 
 			#endregion Fields
 
@@ -377,8 +445,8 @@ namespace Org.Lwes.Emitter
 
 			public void Emit(Event ev)
 			{
-				_eventQueue.Enqueue(ev);
-				EnsureSerializerIsActive();
+				_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
+				EnsureSenderIsActive();
 			}
 
 			public void Start(IEventTemplateDB db, IPEndPoint sendToEP, Action<Socket, IPEndPoint> finishSocket)
@@ -399,11 +467,8 @@ namespace Org.Lwes.Emitter
 					byte[] data;
 					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _dataQueue.TryDequeue(out data))
 					{
-						_emitEP.SendToAsync(_sendToEP, data, data.Length, (op) =>
-						{
-							BufferManager.ReleaseBuffer(op.Buffer);
-							return false;
-						});
+						_emitEP.SendTo(_sendToEP, data);
+						BufferManager.ReleaseBuffer(data);
 					}
 				}
 				finally
@@ -413,38 +478,12 @@ namespace Org.Lwes.Emitter
 						EnsureSenderIsActive();
 				}
 			}
-
-			void Background_Serializer(object unused_state)
-			{
-				//
-				// Drains the event queue and performs notification
-				//
-				try
-				{
-					Event ev;
-					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _eventQueue.TryDequeue(out ev))
-					{
-						_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
-						EnsureSenderIsActive();
-					}
-				}
-				finally
-				{
-					int z = Interlocked.Decrement(ref _serializers);
-					if (z == 0 && !_eventQueue.IsEmpty)
-						EnsureSerializerIsActive();
-				}
-			}
-
+						
 			private void Dispose(bool p)
 			{
 				// Signal background threads...
 				_emitterState.TryTransition(EmitterState.StopSignaled, EmitterState.Active, () =>
 				{
-					while (Thread.VolatileRead(ref _serializers) > 0)
-					{
-						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
-					}
 					while (Thread.VolatileRead(ref _senders) > 0)
 					{
 						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
@@ -468,25 +507,6 @@ namespace Org.Lwes.Emitter
 					{
 						current = value;
 						value = Interlocked.CompareExchange(ref _senders, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
-					}
-				}
-			}
-
-			private void EnsureSerializerIsActive()
-			{
-				int current = -1, value = Thread.VolatileRead(ref _serializers);
-				if (value < 1)
-				{
-					WaitCallback cb = new WaitCallback(Background_Serializer);
-					while (true)
-					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _serializers, value + 1, current);
 						if (value == current)
 						{
 							ThreadPool.QueueUserWorkItem(cb);
