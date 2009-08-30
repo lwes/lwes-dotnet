@@ -79,7 +79,7 @@ namespace Org.Lwes
 				}
 				catch (Exception e)
 				{
-					Diagnostics.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
+					Traceable.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
 					/* IoC failure - remember this and stop trying */
 					__hardFailOnAccessingIoC = true;
 				}
@@ -116,7 +116,7 @@ namespace Org.Lwes
 					// Set the failure first so we don't recurse inadvertently
 					__hardFailOnAccessingIoC = true;
 
-					Diagnostics.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
+					Traceable.TraceData(typeof(IoCAdapter), TraceEventType.Error, Resources.Error_IocAdapterFailure, e);
 					/* IoC failure - remember this and stop trying */
 				}
 			}

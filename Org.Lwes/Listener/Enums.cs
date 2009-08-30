@@ -22,32 +22,6 @@ namespace Org.Lwes.Listener
 	#region Enumerations
 
 	/// <summary>
-	/// Represents the state of an event sink.
-	/// </summary>
-	public enum SinkStatus
-	{
-		/// <summary>
-		/// Indicates the event sink has been suspended and should not receive
-		/// events until activated. This is the initial state for new IEventSinkRegistrationKeys.
-		/// </summary>
-		Suspended = 0,
-		/// <summary>
-		/// Indicates the event sink is active and may be notified of events
-		/// at any time.
-		/// </summary>
-		Active = 1,
-		/// <summary>
-		/// For event sinks that are not thread-safe, indicates that the sink
-		/// is currently being invoked.
-		/// </summary>
-		Notifying = 2,
-		/// <summary>
-		/// Indicates the event sink has been canceled.
-		/// </summary>
-		Canceled = 3
-	}
-
-	/// <summary>
 	/// Strategies to be taken when garbage data arrives from an endpoint.
 	/// </summary>
 	public enum GarbageHandlingVote
@@ -97,6 +71,32 @@ namespace Org.Lwes.Listener
 		/// The default value: FailSilently
 		/// </summary>
 		Default = FailSilently
+	}
+
+	/// <summary>
+	/// Represents the state of an event sink.
+	/// </summary>
+	public enum SinkStatus
+	{
+		/// <summary>
+		/// Indicates the event sink has been suspended and should not receive
+		/// events until activated. This is the initial state for new IEventSinkRegistrationKeys.
+		/// </summary>
+		Suspended = 0,
+		/// <summary>
+		/// Indicates the event sink is active and may be notified of events
+		/// at any time.
+		/// </summary>
+		Active = 1,
+		/// <summary>
+		/// For event sinks that are not thread-safe, indicates that the sink
+		/// is currently being invoked.
+		/// </summary>
+		Notifying = 2,
+		/// <summary>
+		/// Indicates the event sink has been canceled.
+		/// </summary>
+		Canceled = 3
 	}
 
 	#endregion Enumerations

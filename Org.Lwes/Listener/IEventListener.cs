@@ -27,14 +27,15 @@ namespace Org.Lwes.Listener
 	/// </summary>
 	public interface IEventListener : IDisposable
 	{
+		/// <summary>
+		/// Occurs when an LWES event arrives.
+		/// </summary>
 		event OnLwesEventArrived OnEventArrived;
-		event OnLwesGarbageArrived OnGarbageArrived;
 
 		/// <summary>
-		/// Initializes the listener.
+		/// Occurs when garbage data is received by the listener.
 		/// </summary>
-		/// <exception cref="System.InvalidOperationException">thrown if the listener has already been initialized</exception>
-		void Initialize();
+		event OnLwesGarbageArrived OnGarbageArrived;
 
 		/// <summary>
 		/// The ip address where the listener will listen.
@@ -57,13 +58,21 @@ namespace Org.Lwes.Listener
 		}
 
 		/// <summary>
-		/// Registers an event sink and activates it.
+		/// Initializes the listener.
+		/// </summary>
+		/// <exception cref="System.InvalidOperationException">thrown if the listener has already been initialized</exception>
+		void Initialize();
+
+		/// <summary>
+		/// Registers a data receiver sink with the listener without activating the
+		/// event sink.
 		/// </summary>
 		/// <param name="sink">the sink to register</param>
-		/// <param name="handback">a handback object - this object is opaque to the listener
-		/// and will be attached to the registration key prior to activation</param>
-		/// <returns>A registration key for the sink.</returns>
-		ISinkRegistrationKey RegisterAndActivateEventSink(IEventSink sink, object handback);
+		/// <returns>A registration key for the sink</returns>
+		/// <remarks>Sinks will not begin to recieve notification 
+		/// until <em>after</em> the registration key's <see cref="ISinkRegistrationKey.Activate"/>
+		/// method is called.</remarks>
+		ISinkRegistrationKey RegisterDataReceiverSink(IDataReceiverSink sink);
 
 		/// <summary>
 		/// Registers an event sink with the listener without activating the
@@ -72,18 +81,9 @@ namespace Org.Lwes.Listener
 		/// <param name="sink">the event sink to register</param>
 		/// <returns>A registration key for the event sink</returns>
 		/// <remarks>Sinks will not begin to recieve event notification 
-		/// until <em>after</em> the registration key's <em>Activate</em> 
+		/// until <em>after</em> the registration key's <see cref="ISinkRegistrationKey.Activate"/>
 		/// method is called.</remarks>
 		ISinkRegistrationKey RegisterEventSink(IEventSink sink);
-
-		/// <summary>
-		/// Registers a garbage sink and activates it.
-		/// </summary>
-		/// <param name="sink">the garbage sink to register</param>
-		/// <param name="handback">a handback object - this object is opaque to the listener
-		/// and will be attached to the registration key prior to activation</param>
-		/// <returns>A registration key for the sink.</returns>
-		ISinkRegistrationKey RegisterAndActivateGarbageSink(IGarbageSink sink, object handback);
 
 		/// <summary>
 		/// Registers a garbage sink with the listener without activating.
@@ -91,7 +91,7 @@ namespace Org.Lwes.Listener
 		/// <param name="sink">the sink to register</param>
 		/// <returns>A registration key for the sink</returns>
 		/// <remarks>Sinks will not begin to recieve garbage notification 
-		/// until <em>after</em> the registration key's <em>Activate</em> 
+		/// until <em>after</em> the registration key's <see cref="ISinkRegistrationKey.Activate"/>
 		/// method is called.</remarks>
 		ISinkRegistrationKey RegisterGarbageSink(IGarbageSink sink);
 	}

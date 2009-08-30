@@ -28,7 +28,7 @@ namespace Org.Lwes.Tests
 	class Program
 	{
 		#region Methods
-				
+
 		static void Main(string[] args)
 		{
 			using (IEventListener listener = EventListener.CreateDefault())
@@ -38,7 +38,7 @@ namespace Org.Lwes.Tests
 				Event mostRecent = default(Event);
 
 				Console.WriteLine("LWES EventListener -\r\n  This console will continue to queue and print LWES events until\r\n  the user types 'exit' followed by a carriage return.");
-				
+
 				listener.OnEventArrived += (sender, ev)	=>
 					{
 						Thread.MemoryBarrier();
@@ -59,7 +59,7 @@ namespace Org.Lwes.Tests
 							Event mr = mostRecent;
 							Thread.MemoryBarrier();
 							Console.WriteLine(mr.ToString(true));
-							Console.WriteLine("Events received: {0}. Type 'exit' and hit the <return> key to exit.", eventCount.ToString("N0"));							
+							Console.WriteLine("Events received: {0}. Type 'exit' and hit the <return> key to exit.", eventCount.ToString("N0"));
 						}
 					}
 				}));
@@ -69,7 +69,7 @@ namespace Org.Lwes.Tests
 				{
 					input = Console.ReadLine();
 				} while (!String.Equals(input, "exit", StringComparison.CurrentCultureIgnoreCase));
-				
+
 				userChoseToExit = true;
 				listener.Dispose();
 

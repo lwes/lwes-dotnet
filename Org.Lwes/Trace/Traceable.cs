@@ -36,7 +36,7 @@ namespace Org.Lwes
 	/// <summary>
 	/// Diagnostics utility.
 	/// </summary>
-	public static class Diagnostics
+	public static class Traceable
 	{
 		#region Fields
 
@@ -58,7 +58,7 @@ namespace Org.Lwes
 
 		#region Constructors
 
-		static Diagnostics()
+		static Traceable()
 		{
 			LwesConfigurationSection config = LwesConfigurationSection.Current;
 			DiagnosticsConfigurationElement diag = config.Diagnostics ?? new DiagnosticsConfigurationElement();
@@ -80,36 +80,80 @@ namespace Org.Lwes
 
 		#region Methods
 
+		/// <summary>
+		/// Writes trace data on behalf of a source object using the specified event type, event identifier, and trace data.
+		/// </summary>
+		/// <typeparam name="T">source type T</typeparam>
+		/// <param name="source">source object</param>
+		/// <param name="eventType">event type</param>
+		/// <param name="data">trace data</param>
 		public static void TraceData<T>(this T source, TraceEventType eventType, object data)
 			where T : ITraceable
 		{
 			TraceAdapter<T>.Filter.TraceData(eventType, DefaultTraceEventID, data);
 		}
 
+		/// <summary>
+		/// Writes trace data on behalf of a source object using the specified event type, event identifier, and trace data.
+		/// </summary>
+		/// <typeparam name="T">source type T</typeparam>
+		/// <param name="source">source object</param>
+		/// <param name="eventType">event type</param>
+		/// <param name="dataGenerator">delegate that generates trace data; only called if the
+		/// <paramref name="eventType"/> is currently being traced</param>
 		public static void TraceData<T>(this T source, TraceEventType eventType, Func<object[]> dataGenerator)
 			where T : ITraceable
 		{
 			TraceAdapter<T>.Filter.TraceData(eventType, DefaultTraceEventID, dataGenerator());
 		}
 
+		/// <summary>
+		/// Traces data for a source.
+		/// </summary>
+		/// <typeparam name="T">source type T</typeparam>
+		/// <param name="source">the source of the data</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="id">an integer ID for the event</param>
+		/// <param name="data">the data</param>
 		public static void TraceData<T>(this T source, TraceEventType eventType, int id, object data)
 			where T : ITraceable
 		{
 			TraceAdapter<T>.Filter.TraceData(eventType, id, data);
 		}
 
+		/// <summary>
+		/// Traces data for a source.
+		/// </summary>
+		/// <typeparam name="T">source type T</typeparam>
+		/// <param name="source">the source of the data</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="data">the data</param>
 		public static void TraceData<T>(this T source, TraceEventType eventType, params object[] data)
 			where T : ITraceable
 		{
 			TraceAdapter<T>.Filter.TraceData(eventType, DefaultTraceEventID, data);
 		}
 
+		/// <summary>
+		/// Traces data for a source.
+		/// </summary>
+		/// <typeparam name="T">source type T</typeparam>
+		/// <param name="source">the source of the data</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="id">an integer ID for the event</param>
+		/// <param name="data">the data</param>
 		public static void TraceData<T>(this T source, TraceEventType eventType, int id, params object[] data)
 			where T : ITraceable
 		{
 			TraceAdapter<T>.Filter.TraceData(eventType, id, data);
 		}
 
+		/// <summary>
+		/// Traces data for a source type (for tracing within static methods).
+		/// </summary>
+		/// <param name="sourceType">source type</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="data">the data</param>
 		public static void TraceData(Type sourceType, TraceEventType eventType, object data)
 		{
 			if (sourceType == null) throw new ArgumentNullException("sourceType");
@@ -121,6 +165,13 @@ namespace Org.Lwes
 			}
 		}
 
+		/// <summary>
+		/// Traces data for a source type (for tracing within static methods).
+		/// </summary>
+		/// <param name="sourceType">source type</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="dataGenerator">delegate that generates data; only called if the
+		/// <paramref name="eventType"/> is currently being traced</param>
 		public static void TraceData(Type sourceType, TraceEventType eventType, Func<object[]> dataGenerator)
 		{
 			if (sourceType == null) throw new ArgumentNullException("sourceType");
@@ -132,6 +183,13 @@ namespace Org.Lwes
 			}
 		}
 
+		/// <summary>
+		/// Traces data for a source type (for tracing within static methods).
+		/// </summary>
+		/// <param name="sourceType">source type</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="id">an integer ID for the event</param>
+		/// <param name="data">the data</param>
 		public static void TraceData(Type sourceType, TraceEventType eventType, int id, object data)
 		{
 			if (sourceType == null) throw new ArgumentNullException("sourceType");
@@ -143,6 +201,12 @@ namespace Org.Lwes
 			}
 		}
 
+		/// <summary>
+		/// Traces data for a source type (for tracing within static methods).
+		/// </summary>
+		/// <param name="sourceType">source type</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="data">the data</param>
 		public static void TraceData(Type sourceType, TraceEventType eventType, params object[] data)
 		{
 			if (sourceType == null) throw new ArgumentNullException("sourceType");
@@ -154,6 +218,13 @@ namespace Org.Lwes
 			}
 		}
 
+		/// <summary>
+		/// Traces data for a source type (for tracing within static methods).
+		/// </summary>
+		/// <param name="sourceType">source type</param>
+		/// <param name="eventType">type of trace</param>
+		/// <param name="id">an integer ID for the event</param>
+		/// <param name="data">the data</param>
 		public static void TraceData(Type sourceType, TraceEventType eventType, int id, params object[] data)
 		{
 			if (sourceType == null) throw new ArgumentNullException("sourceType");
@@ -162,74 +233,6 @@ namespace Org.Lwes
 			if (f.ShouldTrace(eventType))
 			{
 				f.TraceData(eventType, id, data);
-			}
-		}
-
-		public static void TraceError<T>(this T source, string message)
-			where T : ITraceable
-		{
-			TraceAdapter<T>.Filter.TraceEvent(TraceEventType.Error, DefaultTraceEventID, message);
-		}
-
-		public static void TraceError<T>(this T source, int id, string message)
-			where T : ITraceable
-		{
-			TraceAdapter<T>.Filter.TraceEvent(TraceEventType.Error, id, message);
-		}
-
-		public static void TraceError<T>(this T source, string format, params object[] args)
-			where T : ITraceable
-		{
-			TraceAdapter<T>.Filter.TraceEvent(TraceEventType.Error, DefaultTraceEventID, format, args);
-		}
-
-		public static void TraceError<T>(this T source, int id, string format, params object[] args)
-			where T : ITraceable
-		{
-			TraceAdapter<T>.Filter.TraceEvent(TraceEventType.Error, id, format, args);
-		}
-
-		public static void TraceError(Type sourceType, string message)
-		{
-			if (sourceType == null) throw new ArgumentNullException("sourceType");
-
-			ITraceSourceFilter f = AcquireSourceFilter(sourceType);
-			if (f.ShouldTrace(TraceEventType.Error))
-			{
-				f.TraceEvent(TraceEventType.Error, DefaultTraceEventID, message);
-			}
-		}
-
-		public static void TraceError(Type sourceType, int id, string message)
-		{
-			if (sourceType == null) throw new ArgumentNullException("sourceType");
-
-			ITraceSourceFilter f = AcquireSourceFilter(sourceType);
-			if (f.ShouldTrace(TraceEventType.Error))
-			{
-				f.TraceEvent(TraceEventType.Error, id, message);
-			}
-		}
-
-		public static void TraceError(Type sourceType, string format, params object[] args)
-		{
-			if (sourceType == null) throw new ArgumentNullException("sourceType");
-
-			ITraceSourceFilter f = AcquireSourceFilter(sourceType);
-			if (f.ShouldTrace(TraceEventType.Error))
-			{
-				f.TraceEvent(TraceEventType.Error, DefaultTraceEventID, format, args);
-			}
-		}
-
-		public static void TraceError(Type sourceType, int id, string format, params object[] args)
-		{
-			if (sourceType == null) throw new ArgumentNullException("sourceType");
-
-			ITraceSourceFilter f = AcquireSourceFilter(sourceType);
-			if (f.ShouldTrace(TraceEventType.Error))
-			{
-				f.TraceEvent(TraceEventType.Error, id, format, args);
 			}
 		}
 
@@ -601,7 +604,7 @@ namespace Org.Lwes
 
 			static TraceAdapter()
 			{
-				__filter = Diagnostics.AcquireSourceFilter(typeof(T));
+				__filter = Traceable.AcquireSourceFilter(typeof(T));
 			}
 
 			#endregion Constructors

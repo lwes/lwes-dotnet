@@ -35,11 +35,6 @@ namespace Org.Lwes.Emitter
 	public interface IEventEmitter : IDisposable
 	{
 		/// <summary>
-		/// Initializes the emitter.
-		/// </summary>
-		void Initialize();
-
-		/// <summary>
 		/// The ip address to which events are emitted.
 		/// </summary>
 		/// <exception cref="System.InvalidOperationException">thrown if the emitter has already been initialized</exception>
@@ -138,5 +133,10 @@ namespace Org.Lwes.Emitter
 		/// <param name="evt">the event being emitted</param>
 		/// <exception cref="System.InvalidOperationException">thrown if the emitter has not been initialized</exception>
 		void Emit(Event evt);
+
+		/// <summary>
+		/// Initializes the emitter.
+		/// </summary>
+		void Initialize();
 	}
 }

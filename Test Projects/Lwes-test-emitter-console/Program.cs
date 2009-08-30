@@ -21,12 +21,12 @@ namespace Org.Lwes.Tests
 {
 	using System;
 	using System.Diagnostics;
+	using System.Net;
 	using System.Threading;
 
 	using Org.Lwes;
-	using Org.Lwes.Emitter;
 	using Org.Lwes.DB;
-	using System.Net;
+	using Org.Lwes.Emitter;
 
 	class Program
 	{
@@ -34,9 +34,10 @@ namespace Org.Lwes.Tests
 
 		static void Main(string[] args)
 		{
-			Diagnostics.TraceEvent(typeof(Program), TraceEventType.Verbose, 
+			Traceable.TraceEvent(typeof(Program), TraceEventType.Verbose,
 				1, "Starting Lwes-test-emitter-console");
 
+			var rand = new Random(Environment.TickCount);
 			var control = new { NumberOfEventsToEmit = 100000, MaxNumberOfAttributes = 25 };
 
 			Console.WriteLine(String.Format("LWES EventEmitter - \r\nThis console will generate and emit {0} random events to the Light Weight Event System"
@@ -47,15 +48,18 @@ namespace Org.Lwes.Tests
 			// Create an emitter - this is the emitter named in the lwes/emitters
 			// configuration node.
 			using (IEventEmitter emitter = EventEmitter.CreateDefault())
-			{				
+			{
 				for (int i = 0; i < control.NumberOfEventsToEmit; i++)
 				{
 					Event ev = EventUtils.GenerateRandomEvent(String.Concat("TestEvent_", i), control.MaxNumberOfAttributes, SupportedEncoding.UTF_8);
 					emitter.Emit(ev);
+
+					// Simulated processing between events.. up to 1000 spins
+					Thread.SpinWait(rand.Next(1000));
 				}
 			}
 
-			Diagnostics.TraceEvent(typeof(Program), TraceEventType.Verbose,
+			Traceable.TraceEvent(typeof(Program), TraceEventType.Verbose,
 				2, "Stopping Lwes-test-emitter-console");
 		}
 

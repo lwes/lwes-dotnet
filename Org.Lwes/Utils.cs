@@ -120,6 +120,33 @@ namespace Org.Lwes
 		}
 
 		/// <summary>
+		/// Initializes a referenced variable if it is not already initialized.
+		/// </summary>
+		/// <typeparam name="T">variable type T</typeparam>
+		/// <param name="variable">reference to the variable being initialized</param>
+		/// <param name="lck">an object used as a lock if initialization is necessary</param>
+		public static T LazyInitializeWithLock<T>(ref T variable, Object lck)
+			where T : class, new()
+		{
+			if (lck == null) throw new ArgumentNullException("lck");
+
+			if (variable == null)
+			{
+				lock (lck)
+				{ // double-check the lock in case we're in a race...
+					if (variable == null)
+					{
+						T ourNewInstance = new T();
+						T instanceCreatedByOtherThread = Interlocked.CompareExchange(ref variable, ourNewInstance, null);
+						// prefer the race winner's instance... the GC will collect ours.
+						variable = (instanceCreatedByOtherThread != null) ? instanceCreatedByOtherThread : ourNewInstance;
+					}
+				}
+			}
+			return variable;
+		}
+
+		/// <summary>
 		/// Initializes a referenced variable if it is not already initialized. Uses
 		/// the <paramref name="factoryDelegate"/> to create the instance if necessary.
 		/// </summary>

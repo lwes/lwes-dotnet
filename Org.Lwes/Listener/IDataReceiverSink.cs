@@ -1,4 +1,6 @@
-﻿//
+﻿#region Header
+
+//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
 // COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
@@ -17,22 +19,27 @@
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 //
+
+#endregion Header
+
 namespace Org.Lwes.Listener
 {
 	using System.Net;
 
 	/// <summary>
-	/// Interface for classes that handle the arrival of LWES events.
+	/// Interface for classes that handle the arrival of LWES data.
 	/// </summary>
-	public interface IEventSink
+	public interface IDataReceiverSink
 	{
 		/// <summary>
-		/// Callback method invoked by event listeners when LWES events arrive.
+		/// Callback method invoked by event listeners when data arrives on an endpoint.
 		/// </summary>
-		/// <param name="key">Registration key for controlling the registration and status of
-		/// an event sink</param>
-		/// <param name="ev">a newly arrived LWES event</param>
+		/// <param name="key">Registration key for controlling the sink's registration</param>
+		/// <param name="data">a byte array containing data received from the endpoint</param>
+		/// <param name="count">number of bytes received</param>
+		/// <param name="offset">offset to the first data byte in the buffer</param>
+		/// <param name="remoteEP">remote endpoint that sent the data</param>
 		/// <returns><em>true</em> if the listener should continue notifying the sink-chain; otherwise <em>false</em></returns>
-		bool HandleEventArrival(ISinkRegistrationKey key, Event ev);
+		bool HandleData(ISinkRegistrationKey key, EndPoint remoteEP, byte[] data, int offset, int count);
 	}
 }

@@ -1,4 +1,6 @@
-﻿//
+﻿#region Header
+
+//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
 // COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
@@ -17,93 +19,32 @@
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 //
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
+
+#endregion Header
 
 namespace Org.Lwes.Listener
 {
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Threading;
+
 	internal class SinkRegistrations<TKey> : IEnumerable<TKey>
-			where TKey : class, ISinkRegistrationKey
+		where TKey : class, ISinkRegistrationKey
 	{
+		#region Fields
+
 		const int LeadNotifier = 1;
 
-		ReaderWriterLockSlim _rwlock = new ReaderWriterLockSlim();
-		int _notifiers = 0;
 		List<TKey> _additions = new List<TKey>();
-		TKey[] _registrations = new TKey[0];
 		int _consolidationVotes = 0;
+		int _notifiers = 0;
+		TKey[] _registrations = new TKey[0];
+		ReaderWriterLockSlim _rwlock = new ReaderWriterLockSlim();
 
-		internal void AddRegistration(TKey key)
-		{
-			int notifier = Interlocked.Increment(ref _notifiers);
-			try
-			{
-				if (notifier == LeadNotifier)
-				{
-					if (_rwlock.TryEnterWriteLock(20))
-					{
-						try
-						{
-							lock (_additions)
-							{
-								_additions.Add(key);
-								UnsafeConsolidateRegistrations();
-							}
-							return;
-						}
-						finally
-						{
-							_rwlock.ExitWriteLock();
-						}
-					}
-				}
+		#endregion Fields
 
-				// We couldn't get the writelock so we're gonna have to schedule
-				// the key to be added later...
-				lock (_additions)
-				{
-					_additions.Add(key);
-					Interlocked.Increment(ref _consolidationVotes);
-				}
-			}
-			finally
-			{
-				Interlocked.Decrement(ref _notifiers);
-			}
-		}
-		private void SafeConsolidateRegistrations()
-		{
-			_rwlock.EnterWriteLock();
-			try
-			{
-				lock (_additions)
-				{
-					UnsafeConsolidateRegistrations();
-				}
-			}
-			finally
-			{
-				_rwlock.ExitWriteLock();
-			}
-		}
-		private void UnsafeConsolidateRegistrations()
-		{
-#if DEBUG
-			Debug.Assert(_rwlock.IsWriteLockHeld);
-#endif
-			_registrations = (from r in _registrations
-												where r.Status != SinkStatus.Canceled
-												select r).Concat(from r in _additions
-																				 where r.Status != SinkStatus.Canceled
-																				 select r).ToArray();
-			_additions.Clear();
-
-			Thread.VolatileWrite(ref _consolidationVotes, 0);
-		}
-
-		#region IEnumerable<TKey> Members
+		#region Methods
 
 		public IEnumerator<TKey> GetEnumerator()
 		{
@@ -137,16 +78,81 @@ namespace Org.Lwes.Listener
 			}
 		}
 
-		#endregion
-
-		#region IEnumerable Members
-
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}
 
-		#endregion
-	}
+		internal void AddRegistration(TKey key)
+		{
+			int notifier = Interlocked.Increment(ref _notifiers);
+			try
+			{
+				if (notifier == LeadNotifier)
+				{
+					if (_rwlock.TryEnterWriteLock(20))
+					{
+						try
+						{
+							lock (_additions)
+							{
+								_additions.Add(key);
+								UnsafeConsolidateRegistrations();
+							}
+							return;
+						}
+						finally
+						{
+							_rwlock.ExitWriteLock();
+						}
+					}
+				}
 
+				// We couldn't get the writelock so we have to schedule
+				// the key to be added by the leader thread...
+				lock (_additions)
+				{
+					_additions.Add(key);
+					Interlocked.Increment(ref _consolidationVotes);
+				}
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _notifiers);
+			}
+		}
+
+		private void SafeConsolidateRegistrations()
+		{
+			_rwlock.EnterWriteLock();
+			try
+			{
+				lock (_additions)
+				{
+					UnsafeConsolidateRegistrations();
+				}
+			}
+			finally
+			{
+				_rwlock.ExitWriteLock();
+			}
+		}
+
+		private void UnsafeConsolidateRegistrations()
+		{
+			#if DEBUG
+			Debug.Assert(_rwlock.IsWriteLockHeld);
+			#endif
+			_registrations = (from r in _registrations
+												where r.Status != SinkStatus.Canceled
+												select r).Concat(from r in _additions
+																				 where r.Status != SinkStatus.Canceled
+																				 select r).ToArray();
+			_additions.Clear();
+
+			Thread.VolatileWrite(ref _consolidationVotes, 0);
+		}
+
+		#endregion Methods
+	}
 }

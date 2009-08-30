@@ -43,8 +43,8 @@ namespace Org.Lwes.Emitter
 		IEmitter _emitter;
 		SupportedEncoding _enc;
 		Encoding _encoding;
-		Status<EmitterState> _status;
 		int _port;
+		Status<EmitterState> _status;
 		bool _validate;
 
 		#endregion Fields
@@ -98,11 +98,6 @@ namespace Org.Lwes.Emitter
 		#endregion Nested Interfaces
 
 		#region Properties
-
-		/// <summary>
-		/// Indicates whether the emitter is using a parallel emit strategy.
-		/// </summary>
-		protected bool IsParallel { get; set; }
 
 		/// <summary>
 		/// The ip address to which events are emitted.
@@ -183,6 +178,14 @@ namespace Org.Lwes.Emitter
 				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
 				_validate = value;
 			}
+		}
+
+		/// <summary>
+		/// Indicates whether the emitter is using a parallel emit strategy.
+		/// </summary>
+		protected bool IsParallel
+		{
+			get; set;
 		}
 
 		#endregion Properties
@@ -290,15 +293,6 @@ namespace Org.Lwes.Emitter
 		}
 
 		/// <summary>
-		/// Disposes of the emitter.
-		/// </summary>
-		/// <param name="disposing">Indicates whether the object is being disposed</param>
-		protected virtual void Dispose(bool disposing)
-		{
-			Util.Dispose(ref _emitter);
-		}
-
-		/// <summary>
 		/// Initializes the emitter.
 		/// </summary>
 		public void Initialize()
@@ -319,10 +313,13 @@ namespace Org.Lwes.Emitter
 		}
 
 		/// <summary>
-		/// Performs initialization of the emitter. Derived classes must implement this method
-		/// and subsequently call the <em>FinishInitialize</em> method of the base class.
+		/// Disposes of the emitter.
 		/// </summary>
-		protected abstract void PerformInitialization();
+		/// <param name="disposing">Indicates whether the object is being disposed</param>
+		protected virtual void Dispose(bool disposing)
+		{
+			Util.Dispose(ref _emitter);
+		}
 
 		/// <summary>
 		/// Finishes initialization of the emitter.
@@ -336,7 +333,7 @@ namespace Org.Lwes.Emitter
 
 			if (_status.CurrentState != EmitterState.Initializing)
 				throw new InvalidOperationException("only valid while initialzing");
-			
+
 			if (_db == null) throw new InvalidOperationException("TemplateDB must be set before initialization");
 			if (_encoding == null) throw new InvalidOperationException("Encoding must be set before initialization");
 
@@ -348,6 +345,12 @@ namespace Org.Lwes.Emitter
 
 			_emitter = emitter;
 		}
+
+		/// <summary>
+		/// Performs initialization of the emitter. Derived classes must implement this method
+		/// and subsequently call the <em>FinishInitialize</em> method of the base class.
+		/// </summary>
+		protected abstract void PerformInitialization();
 
 		#endregion Methods
 
@@ -478,7 +481,7 @@ namespace Org.Lwes.Emitter
 						EnsureSenderIsActive();
 				}
 			}
-						
+
 			private void Dispose(bool p)
 			{
 				// Signal background threads...

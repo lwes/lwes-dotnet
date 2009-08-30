@@ -1,4 +1,6 @@
-﻿//
+﻿#region Header
+
+//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
 // COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
@@ -17,10 +19,13 @@
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 //
-using System.Net;
+
+#endregion Header
 
 namespace Org.Lwes.Listener
 {
+	using System.Net;
+
 	/// <summary>
 	/// Interface for handling garbage data received by the event listeners.
 	/// </summary>

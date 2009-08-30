@@ -54,7 +54,10 @@ namespace Org.Lwes.Listener
 			Initialize();
 		}
 
-		protected override void  PerformInitialization()
+		/// <summary>
+		/// Initializes the listener on a multicast address.
+		/// </summary>
+		protected override void PerformInitialization()
 		{
 			base.FinishInitialize(new IPEndPoint(Address, Port),
 				(s, e) =>

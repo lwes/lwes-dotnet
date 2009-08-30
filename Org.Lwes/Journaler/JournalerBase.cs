@@ -33,7 +33,7 @@ namespace Org.Lwes.Journaler
 	/// This base class assumes there is a one-to-one relationship between the journaler
 	/// and a listener.
 	/// </remarks>
-	public abstract class JournalerBase : IJournaler, IEventSink, ITraceable
+	public abstract class JournalerBase : IJournaler, IDataReceiverSink, ITraceable
 	{
 		#region Fields
 
@@ -48,12 +48,8 @@ namespace Org.Lwes.Journaler
 		/// <summary>
 		/// Creates a new instance.
 		/// </summary>
-		/// <param name="listener">The event listener this journaler will receive
-		/// messages from.</param>
-		protected JournalerBase(IEventListener listener)
+		protected JournalerBase()
 		{
-			if (listener == null) throw new ArgumentNullException("listener");
-			_listener = listener;
 		}
 
 		/// <summary>
@@ -68,14 +64,9 @@ namespace Org.Lwes.Journaler
 
 		#region Properties
 
-		/// <summary>
-		/// Indicates whether the journaler is thread-safe. Derived classes must
-		/// set this property.
-		/// </summary>
-		public bool IsThreadSafe
+		public bool IsInitialized
 		{
-			get;
-			protected set;
+			get { return _status.IsGreaterThan(JournalerState.Initializing); }
 		}
 
 		/// <summary>
@@ -84,6 +75,16 @@ namespace Org.Lwes.Journaler
 		public JournalerState Status
 		{
 			get { return _status.CurrentState; }
+		}
+
+		protected IEventListener Listener
+		{
+			get { return _listener; }
+			set
+			{
+				if (IsInitialized) throw new InvalidOperationException(Resources.Error_AlreadyInitialized);
+				_listener = value;
+			}
 		}
 
 		#endregion Properties
@@ -117,11 +118,11 @@ namespace Org.Lwes.Journaler
 			}
 		}
 
-		void IEventSink.HandleEventArrival(ISinkRegistrationKey key, Event ev)
+		bool IDataReceiverSink.HandleData(ISinkRegistrationKey key, EndPoint remoteEP, byte[] data, int offset, int count)
 		{
-			OnHandleEventArrival(key, ev);
+			return PerformHandleData(remoteEP, data, offset, count);
 		}
-		
+
 		/// <summary>
 		/// Initializes the journaler.
 		/// </summary>
@@ -158,7 +159,7 @@ namespace Org.Lwes.Journaler
 			{
 				try
 				{
-					_registrationKey = _listener.RegisterEventSink(this);
+					_registrationKey = _listener.RegisterDataReceiverSink(this);
 					// Let the subclass decide if the start succeeded.
 					if (PerfromStart(_registrationKey) && _registrationKey.Activate())
 					{
@@ -208,26 +209,16 @@ namespace Org.Lwes.Journaler
 		}
 
 		/// <summary>
-		/// Handles event arrival. Derived classes must override this method to handle
-		/// LWES events when they arrive.
+		/// Handles received data. Derived classes must override this method 
+		/// to handle data received from the Light Weight Event System.
 		/// </summary>
 		/// <param name="key">the journaler's registration key with the underlying IEventListener</param>
-		/// <param name="ev">an LWES event</param>
-		protected abstract void OnHandleEventArrival(ISinkRegistrationKey key, Event ev);
-
-		/// <summary>
-		/// Handles garbage data. Derived classes may override this method to handle the
-		/// arrival of garbage data from an endpoint.
-		/// </summary>
-		/// <param name="key">the journaler's registration key with the underlying IEventListener</param>
-		/// <param name="remoteEndPoint">The remote endpoint that sent the garbage</param>
-		/// <param name="priorGarbageCountForEndpoint">Number of times the endpoint has sent garbage</param>
-		/// <param name="garbage">The garbage data as a byte array (this is a copy)</param>
-		/// <returns>The journaler's vote as to how future garbage data should be handled (on a per-endpoint basis)</returns>
-		protected virtual GarbageHandlingVote PerformHandleGarbageData(ISinkRegistrationKey key, EndPoint remoteEndPoint, int priorGarbageCountForEndpoint, byte[] garbage)
-		{
-			return GarbageHandlingVote.Default;
-		}
+		/// <param name="data">a byte array containing data received from the endpoint</param>
+		/// <param name="count">number of bytes received</param>
+		/// <param name="offset">offset to the first data byte in the buffer</param>
+		/// <param name="remoteEP">remote endpoint that sent the data</param>
+		/// <returns><em>true</em> if the listener should continue notifying the sink-chain; otherwise <em>false</em></returns>
+		protected abstract bool PerformHandleData(EndPoint remoteEP, byte[] data, int offset, int count);
 
 		/// <summary>
 		/// Performs initialization of the derived class.

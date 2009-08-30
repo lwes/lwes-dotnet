@@ -54,9 +54,12 @@ namespace Org.Lwes.Listener
 			Initialize();
 		}
 
-		protected override void  PerformInitialization()
-		{			
-			base.FinishInitialize(new IPEndPoint(Address, Port), 
+		/// <summary>
+		/// Initializes the listener on a unicast address.
+		/// </summary>
+		protected override void PerformInitialization()
+		{
+			base.FinishInitialize(new IPEndPoint(Address, Port),
 				(s, e) =>
 				{
 					s.SetSocketOption(SocketOptionLevel.Udp, SocketOptionName.NoDelay, 1);
