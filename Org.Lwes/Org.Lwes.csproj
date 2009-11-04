@@ -12,6 +12,8 @@
     <AssemblyName>Org.Lwes</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>Lwes.Org.StrongNameKey.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -37,13 +39,18 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Data" />
     <Reference Include="System.Xml.Linq">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\AssemblyInfo.version.cs">
+      <Link>AssemblyInfo.version.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>AssemblyInfo.version.tt</DependentUpon>
+    </Compile>
     <Compile Include="BufferManager.cs" />
     <Compile Include="Config\AbstractConfigurationElementCollection.cs" />
     <Compile Include="Config\DiagnosticsConfigurationElement.cs" />
@@ -118,6 +125,17 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup>
+    <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\AssemblyInfo.version.tt">
+      <Link>AssemblyInfo.version.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AssemblyInfo.version.cs</LastGenOutput>
+    </None>
+    <None Include="Lwes.Org.StrongNameKey.pfx" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -126,4 +144,7 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <PropertyGroup>
+    <PostBuildEvent>$(SolutionDir)bin\UpdateWixProjectWithVersion.exe -a:"$(TargetDir)$(TargetFileName)" -p:"$(SolutionDir)LwesBinaryInstaller\LwesBinaryInstaller.wixproj" -f:"Product.wxs"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

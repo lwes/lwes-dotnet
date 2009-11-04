@@ -47,7 +47,7 @@ namespace Org.Lwes
 		/// <param name="offset"></param>
 		/// <param name="len"></param>
 		/// <returns></returns>
-		public static object BytesToOctets(byte[] buffer, int offset, int len)
+		public static string BytesToOctets(byte[] buffer, int offset, int len)
 		{
 			StringBuilder builder = new StringBuilder(3 * len);
 			int first = offset;

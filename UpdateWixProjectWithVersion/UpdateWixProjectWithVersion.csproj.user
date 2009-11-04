@@ -1,0 +1,6 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <StartArguments>-a:"C:\Users\phillip\Projects\lwes\lwes-dotnet\Org.Lwes\bin\Debug\Org.Lwes.dll" -p:"C:\Users\phillip\Projects\lwes\lwes-dotnet\LwesBinaryInstaller\LwesBinaryInstaller.wixproj" -f:"Product.wxs"</StartArguments>
+    <StartWorkingDirectory>C:\Users\phillip\Projects\lwes\lwes-dotnet\bin\</StartWorkingDirectory>
+  </PropertyGroup>
+</Project>
