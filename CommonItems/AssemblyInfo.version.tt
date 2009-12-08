@@ -1,0 +1,118 @@
+//
+// This file is part of the LWES .NET Binding (LWES.net)
+//
+// COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
+//	 original .NET implementation
+//
+// LWES.net is free software: you can redistribute it and/or modify
+// it under the terms of the Lesser GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// LWES.net is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// Lesser GNU General Public License for more details.
+//
+// You should have received a copy of the Lesser GNU General Public License
+// along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
+//
+<#@ template inherits="Microsoft.VisualStudio.TextTemplating.VSHost.ModelingTextTransformation" language="C#v3.5" debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" #>
+<#@ Assembly Name="System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" #>
+<#@ Assembly Name="System.Xml"#>
+<#@ Assembly Name="System.Xml.Linq"#>
+<#@ Assembly Name="System.Windows.Forms"#>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Xml.Linq" #>
+<#@ import namespace="System.Xml.XPath" #>
+<#
+// get TT-file
+var ttFile = this.Host.TemplateFile;
+var ttFileFolder = Path.GetDirectoryName(ttFile);
+var resolvedVersioningFile = Path.Combine(ttFileFolder, "Versioning.xml");
+
+var AsmMajorVersion = "0";
+var AsmMinorVersion = "0";
+var AsmBuildNumber = "0";
+var AsmRevisionNumber = "0";
+var PrintAssemblyVersion = new Func<string>(() =>
+		{
+			var buildAndRevision = (string.Equals(AsmBuildNumber, "*")) ? AsmBuildNumber : string.Concat(AsmBuildNumber, '.', AsmRevisionNumber);
+			return string.Concat(AsmMajorVersion, '.', AsmMinorVersion, '.', buildAndRevision);
+		});
+			
+var FileMajorVersion = "0";
+var FileMinorVersion = "0";
+var FileBuildNumber = "*";
+var FileRevisionNumber = "";
+var PrintFileVersion = new Func<string>(() =>
+		{
+			var buildAndRevision = (string.Equals(FileBuildNumber, "*")) ? FileBuildNumber : string.Concat(FileBuildNumber, '.', FileRevisionNumber);
+			return string.Concat(FileMajorVersion, '.', FileMinorVersion, '.', buildAndRevision);
+		});
+
+if (File.Exists(resolvedVersioningFile))
+{
+	try
+	{
+		var vdoc = XDocument.Load(resolvedVersioningFile);
+		
+		AsmMajorVersion = GetValueAndResolve(vdoc.Root, "assembly/major", AsmMajorVersion, ttFileFolder);
+		AsmMinorVersion = GetValueAndResolve(vdoc.Root, "assembly/minor", AsmMinorVersion, ttFileFolder);
+		AsmBuildNumber = GetValueAndResolve(vdoc.Root, "assembly/build", AsmBuildNumber, ttFileFolder);
+		AsmRevisionNumber = GetValueAndResolve(vdoc.Root, "assembly/revision", AsmRevisionNumber, ttFileFolder);
+		
+		FileMajorVersion = GetValueAndResolve(vdoc.Root, "file/major", FileMajorVersion, ttFileFolder);
+		FileMinorVersion = GetValueAndResolve(vdoc.Root, "file/minor", FileMinorVersion, ttFileFolder);
+		FileBuildNumber = GetValueAndResolve(vdoc.Root, "file/build", FileBuildNumber, ttFileFolder);
+		FileRevisionNumber = GetValueAndResolve(vdoc.Root, "file/revision", FileRevisionNumber, ttFileFolder);
+	}
+	catch(IOException ioe)
+	{		
+	}
+}
+
+
+#>
+using System.Reflection; 
+
+[assembly: AssemblyFileVersion("<#= PrintFileVersion() #>")]
+[assembly: AssemblyVersion("<#= PrintAssemblyVersion() #>")]
+<#+ string GetValueAndResolve(XElement elm, string name, string value, string prjFolder) 
+{ 
+	string result = value;
+	var e = (XElement)elm.XPathSelectElement(name);
+	if (e != null && !String.IsNullOrEmpty(e.Value))
+		result = e.Value;
+	if (String.Equals("$(svn.revision)", result)) 
+	{
+		// HACK! The .svn/entries file does not have a published format so this code
+		// may break at any time if subversion itself changes the format.
+	  var svnFolder = Path.Combine(prjFolder, ".svn");
+	  if (Directory.Exists(svnFolder))
+	  {
+	  	using (var reader = new StreamReader(Path.Combine(svnFolder, "entries")))
+		{
+			// Fields are delimited by a newline character...
+			string[] inp = reader.ReadToEnd().Split('\n');
+			// the revision is the 3rd field
+			if (inp.Length > 3)
+				return inp[3];
+		}
+	  }
+	  else return "no svn folder found";	  
+	}
+	else if (String.Equals("$(seconds)", result))
+	{
+		var now = DateTime.Now;
+		var secondsSinceMidnight = Convert.ToInt32(now.Subtract(new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, 0)).TotalSeconds);
+		result = (secondsSinceMidnight == 0) ? "0" : Convert.ToInt32(secondsSinceMidnight / 2).ToString();
+	}
+	return result;
+} #>

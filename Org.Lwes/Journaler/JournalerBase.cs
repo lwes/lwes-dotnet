@@ -25,6 +25,7 @@ namespace Org.Lwes.Journaler
 
 	using Org.Lwes.Listener;
 	using Org.Lwes.Properties;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// Base class implementation for journalers.
@@ -64,6 +65,9 @@ namespace Org.Lwes.Journaler
 
 		#region Properties
 
+		/// <summary>
+		/// Indicates whether the journaler has been initialized.
+		/// </summary>
 		public bool IsInitialized
 		{
 			get { return _status.IsGreaterThan(JournalerState.Initializing); }
@@ -77,6 +81,9 @@ namespace Org.Lwes.Journaler
 			get { return _status.CurrentState; }
 		}
 
+		/// <summary>
+		/// Accesses the listener from which the journaler is receiving data.
+		/// </summary>
 		protected IEventListener Listener
 		{
 			get { return _listener; }
@@ -161,7 +168,7 @@ namespace Org.Lwes.Journaler
 				{
 					_registrationKey = _listener.RegisterDataReceiverSink(this);
 					// Let the subclass decide if the start succeeded.
-					if (PerfromStart(_registrationKey) && _registrationKey.Activate())
+					if (PerformStart(_registrationKey) && _registrationKey.Activate())
 					{
 						_status.TryTransition(JournalerState.Active, JournalerState.Starting);
 					}
@@ -185,7 +192,7 @@ namespace Org.Lwes.Journaler
 				{
 					_registrationKey.Suspend();
 					// Let the subclass decide if the stop succeeded.
-					if (PerfromStop(_registrationKey))
+					if (PerformStop(_registrationKey))
 					{
 						_registrationKey = null;
 						_status.TryTransition(JournalerState.Stopped, JournalerState.Stopping);
@@ -212,7 +219,6 @@ namespace Org.Lwes.Journaler
 		/// Handles received data. Derived classes must override this method 
 		/// to handle data received from the Light Weight Event System.
 		/// </summary>
-		/// <param name="key">the journaler's registration key with the underlying IEventListener</param>
 		/// <param name="data">a byte array containing data received from the endpoint</param>
 		/// <param name="count">number of bytes received</param>
 		/// <param name="offset">offset to the first data byte in the buffer</param>
@@ -237,7 +243,7 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		/// <param name="registrationKey"></param>
 		/// <returns></returns>
-		protected virtual bool PerfromStart(ISinkRegistrationKey registrationKey)
+		protected virtual bool PerformStart(ISinkRegistrationKey registrationKey)
 		{
 			if (registrationKey == null) throw new ArgumentNullException("registrationKey");
 			return registrationKey.Activate();
@@ -254,7 +260,7 @@ namespace Org.Lwes.Journaler
 		/// </summary>
 		/// <param name="registrationKey"></param>
 		/// <returns></returns>
-		protected virtual bool PerfromStop(ISinkRegistrationKey registrationKey)
+		protected virtual bool PerformStop(ISinkRegistrationKey registrationKey)
 		{
 			if (registrationKey == null) throw new ArgumentNullException("registrationKey");
 			registrationKey.Cancel();

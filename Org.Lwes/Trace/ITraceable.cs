@@ -17,7 +17,7 @@
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace Org.Lwes
+namespace Org.Lwes.Trace
 {
 	/// <summary>
 	/// Enables tracing extensions for a class.

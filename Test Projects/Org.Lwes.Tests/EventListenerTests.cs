@@ -58,6 +58,7 @@
 				sourceEvent.SetValue(e.Attributes.ClientIP.Name, e.Attributes.ClientIP.Value);
 				sourceEvent.SetValue(e.Attributes.Successful.Name, e.Attributes.Successful.Value);
 
+				// give the round-trip 20 seconds to complete, this is extremely generous...
 				long time_out_ticks = DateTime.Now.Ticks + TimeSpan.FromSeconds(20).Ticks;
 
 				while (!done && DateTime.Now.Ticks < time_out_ticks)

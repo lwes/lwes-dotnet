@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<?define VersionStamp="0.1.259.15169"?>
+<?define VersionStamp="0.1.0.12819"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="f024bebe-8e5c-4a87-acb0-c0cdc30810e4" Name="Light Weight Event System v$(var.VersionStamp)" Language="1033" Version="$(var.VersionStamp)" Manufacturer="Lwes.Org" UpgradeCode="fc5c69fa-0a95-4cec-adbb-1e55d1ada11b">
     <Package InstallerVersion="200" Compressed="yes" />
-		<WixVariable Id="WixUILicenseRtf" Value="lgpl-3.0.rtf" />
-		<UIRef Id="WixUI_Minimal" />
-		<Media Id="1" Cabinet="fs.cab" EmbedCab="yes" />
+    <WixVariable Id="WixUILicenseRtf" Value="lgpl-3.0.rtf" />
+    <UIRef Id="WixUI_Minimal" />
+    <Media Id="1" Cabinet="fs.cab" EmbedCab="yes" />
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
         <Directory Id="LwesDir" Name="LWES.org">
@@ -13,11 +13,11 @@
             <!-- This file will get moved to the GAC -->
             <File Id="Org.Lwes.dll_gac" Name="Org.Lwes.dll" DiskId="1" Source="$(var.Org.Lwes.TargetDir)Org.Lwes.dll" Assembly=".net" KeyPath="yes" />
           </Component>
-					<Component Id="RegistryEntries" Guid="*">
-						<RegistryKey Root="HKLM" Key="Software\Microsoft\.NETFramework\AssemblyFolders\Lwes.org" Action="createAndRemoveOnUninstall">
-							<RegistryValue Type="string" Value="[VERSIONROOTDIR]" />
-						</RegistryKey>
-					</Component>
+          <Component Id="RegistryEntries" Guid="*">
+            <RegistryKey Root="HKLM" Key="Software\Microsoft\.NETFramework\AssemblyFolders\Lwes.org" Action="createAndRemoveOnUninstall">
+              <RegistryValue Type="string" Value="[VERSIONROOTDIR]" />
+            </RegistryKey>
+          </Component>
           <Directory Id="VERSIONROOTDIR" Name="v$(var.VersionStamp)">
             <Component Id="FileSystemComponent" Guid="80967822-DADC-43f3-AC1B-2F3FF45E2D6B">
               <!-- This file remains under the installed directory <drive>:\Program Files\Lwes.org\v0.0.0.0 -->
@@ -30,7 +30,7 @@
     <Feature Id="ProductFeature" Title="Lwes" Level="1">
       <ComponentRef Id="GacComponent" />
       <ComponentRef Id="FileSystemComponent" />
-			<ComponentRef Id="RegistryEntries"/>
+      <ComponentRef Id="RegistryEntries" />
     </Feature>
   </Product>
 </Wix>

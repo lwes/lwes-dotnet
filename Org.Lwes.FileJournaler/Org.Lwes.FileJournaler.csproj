@@ -31,32 +31,55 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FlitBit.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Flitbit\Flitbit.MemoryMap\bin\Debug\FlitBit.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="FlitBit.MemoryMap, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Flitbit\Flitbit.MemoryMap\bin\Debug\FlitBit.MemoryMap.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.Xml.Linq">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Xml" />
+    <Reference Include="Winterdom.IO.FileMap, Version=2.0.2.0, Culture=neutral, PublicKeyToken=4982617362e1edb5, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\3rdParty\FileMap_v2.0.2.0\Winterdom.IO.FileMap.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\CommonItems\AssemblyInfo.common.cs">
+      <Link>AssemblyInfo.common.cs</Link>
+    </Compile>
+    <Compile Include="..\CommonItems\AssemblyInfo.version.cs">
+      <Link>AssemblyInfo.version.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>AssemblyInfo.version.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Config\LwesJournalerConfigurationSection.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="FileJournaler.cs" />
+    <Compile Include="FilerBase.cs" />
+    <Compile Include="JournalerControlFile_v1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Sync\IOSReaderWriterLock.cs" />
+    <Compile Include="Sync\OSReaderWriterLock.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Org.Lwes\Org.Lwes.csproj">
       <Project>{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}</Project>
       <Name>Org.Lwes</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\CommonItems\AssemblyInfo.version.tt">
+      <Link>AssemblyInfo.version.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AssemblyInfo.version.cs</LastGenOutput>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

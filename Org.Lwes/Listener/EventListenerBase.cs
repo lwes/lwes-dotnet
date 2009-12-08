@@ -28,6 +28,7 @@ namespace Org.Lwes.Listener
 
 	using Org.Lwes.DB;
 	using Org.Lwes.Properties;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// Base class for event listeners.

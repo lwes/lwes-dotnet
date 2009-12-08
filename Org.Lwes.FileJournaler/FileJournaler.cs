@@ -1,12 +1,13 @@
 ﻿namespace Org.Lwes.FileJournaler
 {
 	using System;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Net;
 	using System.Threading;
-	using FlitBit.MemoryMap;
 	using Org.Lwes.Journaler;
-
+	using Org.Lwes.Trace;
+	
 	public class FileJournaler : JournalerBase, ITraceable
 	{
 		#region Fields
@@ -14,21 +15,71 @@
 		Object _lock = new Object();
 		SimpleLockFreeQueue<Filer> _filers = new SimpleLockFreeQueue<Filer>();
 		const int CHeaderFixedSize = sizeof(long) + sizeof(int) + sizeof(int) + sizeof(int);
-		const string CLwesJournalerControlFileName = "JournalerDbControl";
+		const string CLwesJournalerControlFileName = "JournalerFileControl";
+		const string CDefaultFileNamingDatePattern = "yyyy-MM-dd-HH-mm-ss";
+		const string CDefaultFileNamePattern = "{0}_{1}.log";
+		const int CDefaultMaxBytesPerFile = 2 << 27; // 128MB
 				
 		#endregion Fields
 
+		public FileJournaler(string baseDirectory, string fileNamingDatePattern, string fileNamePattern, int fileRolloverSize)
+		{
+			if (String.IsNullOrEmpty(baseDirectory)) throw new ArgumentException("base directory must have a value", "baseDirectory");
+			if (!Directory.Exists(baseDirectory)) throw new ArgumentException(String.Concat("base directory does not exist: ", baseDirectory), "baseDirectory");
+			if (fileRolloverSize < (2 << 16)) throw new ArgumentOutOfRangeException("fileRolloverSize", "file rollover size is unreasonably small");
+			FileNamingDatePattern = fileNamingDatePattern ?? CDefaultFileNamingDatePattern;
+			FileNamePattern = fileNamePattern ?? CDefaultFileNamePattern;
+			FileRolloverSize = fileRolloverSize;
+
+			if (File.Exists(Path.Combine(baseDirectory, CLwesJournalerControlFileName)))
+			{
+			}
+		}
+
 		#region Methods
 
-		class Filer
+		class Filer : ITraceable
 		{
-			MemoryMappedFile _workFile;
-			Stream _outputStream;
-			Mutex _mapReadLock;
-			Mutex _mapWriteLock;
-		
-			internal void PerformHandleData(IPEndPoint ep, byte[] data, int offset, int count)
-			{				
+			string _datePattern = CDefaultFileNamingDatePattern;
+			string _fileNamingPattern = CDefaultFileNamePattern;
+			int _maxBytesPerFile = CDefaultMaxBytesPerFile;
+			Object _currentFileLock = new Object();
+			FileLockPair _currentFile;
+
+			class FileLockPair
+			{
+				Object _lock = new Object();
+				FileStream _file;
+				long _precalculatedLength = 0;
+				bool _logFileIsFull = false;
+
+				public FileLockPair(FileStream file)
+				{
+					_file = file;
+				}
+
+				public bool TryLockFileForWrite(out Stream file, long count, long maxLength)
+				{
+					Monitor.Enter(_lock);
+					if ((_precalculatedLength + count) >= maxLength)
+					{
+						_logFileIsFull = true;
+						Monitor.Exit(_lock);
+						file = null;
+						return false;
+					}
+					_precalculatedLength += count;
+					file = _file;
+					return true;
+				}
+				public void ReleaseLock()
+				{
+					Monitor.Exit(_lock);
+				}
+			}
+
+			internal void PerformHandleData(IPEndPoint ep, byte[] data, int offset, int count, Action<Filer> onComplete)
+			{
 				// Do all header conversions outside of the lock...
 				byte[] receiptTimeBytes = BitConverter.GetBytes(Org.Lwes.Constants.DateTimeToLwesTimeTicks(DateTime.UtcNow));
 				byte[] senderIPBytes = ep.Address.GetAddressBytes();
@@ -36,7 +87,7 @@
 				byte[] senderPortBytes = BitConverter.GetBytes(ep.Port);
 
 				Stream output;
-				object lck = WriteLockStreamWithAdequateRoom(out output, CHeaderFixedSize + senderIPBytes.Length + count);
+				Action releaseLock = WriteLockStreamWithAdequateRoom(out output, CHeaderFixedSize + senderIPBytes.Length + count);
 				try
 				{
 					// Write header info...
@@ -49,26 +100,37 @@
 				}
 				finally
 				{
-					try
-					{
-						output.Dispose();
-					}
-					catch (Exception e)
-					{
-						// TODO: Log the error but don't rethrow...
-					}
-					ReleaseWriteLock(lck);
-				}				
+					releaseLock();
+				}
+				onComplete(this);
 			}
 
-			private void ReleaseWriteLock(object lck)
+			private Action WriteLockStreamWithAdequateRoom(out Stream output, int requiredBytesRemaining)
 			{
-				throw new NotImplementedException();
+				lock (_currentFileLock)
+				{
+					if (_currentFile == null || !_currentFile.TryLockFileForWrite(out output, requiredBytesRemaining, _maxBytesPerFile))
+					{
+						Rollover();
+						_currentFile.TryLockFileForWrite(out output, requiredBytesRemaining, _maxBytesPerFile);
+					}
+
+					return new Action(() => { _currentFile.ReleaseLock(); });
+				}
 			}
 
-			private object WriteLockStreamWithAdequateRoom(out Stream output, int requiredBytesRemaining)
+			private void Rollover()
 			{
-				throw new NotImplementedException();
+				
+				var fileName = String.Format(CDefaultFileNamePattern, "LWES-Journaler-", DateTime.UtcNow.ToString(CDefaultFileNamingDatePattern));
+				FileStream fs = new FileStream(fileName, FileMode.CreateNew, 
+					FileAccess.Write,
+					FileShare.None, 
+					2 << 18,
+					FileOptions.SequentialScan);
+				_currentFile = new FileLockPair(fs);
+
+
 			}
 		}
 
@@ -79,25 +141,23 @@
 			{
 				Thread.SpinWait(1000);
 			}
-
-			return true;														
+			filer.PerformHandleData((IPEndPoint)remoteEP, data, offset, count, f => _filers.Enqueue(f) );
+			return true;
 		}
 
-		private Stream GetOutputStreamWithEnoughRoomForData(int count)
+		public string BaseDirectory { get; private set; }
+		public string FileNamePattern { get; private set; }
+		public string FileNamingDatePattern { get; private set; }
+		public int FileRolloverSize { get; private set; }
+
+		private string GenerateFileName()
 		{
 			throw new NotImplementedException();
 		}
-
-		public string JournalingFolder { get; private set; }
-		public string FileNamePattern { get; private set; }
 
 		protected override bool PerformInitialize()
 		{
-			if (!Directory.Exists(JournalingFolder)) throw new IOException("JournalingFolder does not exist");
-
 			throw new NotImplementedException();
-			//string fileName;
-			//MemoryMappedFile mapFile = MemoryMappedFile.Create(fileName, MemoryProtection.ReadWrite, Int32.MaxValue, "LWES Journaler File");
 		}
 
 		#endregion Methods

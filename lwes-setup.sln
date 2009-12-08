@@ -8,11 +8,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Org.Lwes", "Org.Lwes\Org.Lw
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8235F19D-4243-466C-BE3F-F953D4CA8336}"
 	ProjectSection(SolutionItems) = preProject
-		AssemblyInfo.version.tt = AssemblyInfo.version.tt
-		lgpl-3.0.txt = lgpl-3.0.txt
+		CommonItems\AssemblyInfo.common.cs = CommonItems\AssemblyInfo.common.cs
+		CommonItems\AssemblyInfo.version.cs = CommonItems\AssemblyInfo.version.cs
+		CommonItems\AssemblyInfo.version.tt = CommonItems\AssemblyInfo.version.tt
+		CommonItems\lgpl-3.0.rtf = CommonItems\lgpl-3.0.rtf
+		CommonItems\lgpl-3.0.txt = CommonItems\lgpl-3.0.txt
 		narrange.xml = narrange.xml
-		README.txt = README.txt
-		Sample Configuration.config = Sample Configuration.config
+		CommonItems\README.txt = CommonItems\README.txt
+		CommonItems\Sample Configuration.config = CommonItems\Sample Configuration.config
+		CommonItems\Versioning.xml = CommonItems\Versioning.xml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateWixProjectWithVersion", "UpdateWixProjectWithVersion\UpdateWixProjectWithVersion.csproj", "{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}"

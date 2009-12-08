@@ -27,6 +27,7 @@ namespace Org.Lwes.Tests
 	using Org.Lwes;
 	using Org.Lwes.DB;
 	using Org.Lwes.Emitter;
+	using Org.Lwes.Trace;
 
 	class Program
 	{

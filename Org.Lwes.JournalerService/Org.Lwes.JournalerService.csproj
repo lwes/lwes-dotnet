@@ -42,6 +42,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\CommonItems\AssemblyInfo.common.cs">
+      <Link>AssemblyInfo.common.cs</Link>
+    </Compile>
+    <Compile Include="..\CommonItems\AssemblyInfo.version.cs">
+      <Link>AssemblyInfo.version.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>AssemblyInfo.version.tt</DependentUpon>
+    </Compile>
     <Compile Include="Journaler.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -56,6 +65,16 @@
       <Project>{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}</Project>
       <Name>Org.Lwes</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\CommonItems\AssemblyInfo.version.tt">
+      <Link>AssemblyInfo.version.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AssemblyInfo.version.cs</LastGenOutput>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

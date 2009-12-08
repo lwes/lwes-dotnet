@@ -25,6 +25,7 @@ namespace Org.Lwes.DB
 
 	using Org.Lwes.ESF;
 	using Org.Lwes.Properties;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// Event template database implementation that uses a file path
@@ -108,7 +109,7 @@ namespace Org.Lwes.DB
 					foreach (var evt in templates)
 					{
 						if (_templates.ContainsKey(evt.Name))
-						{
+						{							
 							// There is already a template by the same name: warn about it
 							this.TraceWarning(Resources.Warning_DuplicateEventTemplateFromESF, evt.Name, fn);
 							_templates[evt.Name] = evt;

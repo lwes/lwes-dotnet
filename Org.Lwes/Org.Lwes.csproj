@@ -39,13 +39,17 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.Xml.Linq">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\AssemblyInfo.version.cs">
+    <Compile Include="..\CommonItems\AssemblyInfo.common.cs">
+      <Link>Properties\AssemblyInfo.common.cs</Link>
+    </Compile>
+    <Compile Include="..\CommonItems\AssemblyInfo.version.cs">
       <Link>AssemblyInfo.version.cs</Link>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -67,6 +71,7 @@
     <Compile Include="Listener\IDataReceiverSink.cs" />
     <Compile Include="Listener\IGarbageSink.cs" />
     <Compile Include="Listener\SinkRegistrations.cs" />
+    <Compile Include="Timer.cs" />
     <Compile Include="Trace\Traceable.cs" />
     <Compile Include="Emitter\EventEmitter.cs" />
     <Compile Include="Emitter\MulticastEventEmitter.cs" />
@@ -129,7 +134,7 @@
     <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\AssemblyInfo.version.tt">
+    <None Include="..\CommonItems\AssemblyInfo.version.tt">
       <Link>AssemblyInfo.version.tt</Link>
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AssemblyInfo.version.cs</LastGenOutput>

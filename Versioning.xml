@@ -1,7 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<version>
-	<major>0</major>
-	<minor>1</minor>
-	<build>$(svn.revision)</build>
-	<revision>$(seconds)</revision>
-</version>

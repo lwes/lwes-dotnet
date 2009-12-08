@@ -1,7 +1,7 @@
-﻿//
+//
 // This file is part of the LWES .NET Binding (LWES.net)
 //
-// COPYRIGHT© 2009, Phillip Clark (phillip[at*flitbit[dot*org)
+// COPYRIGHT� 2009, Phillip Clark (phillip[at*flitbit[dot*org)
 //	 original .NET implementation
 //
 // LWES.net is free software: you can redistribute it and/or modify
@@ -17,12 +17,7 @@
 // You should have received a copy of the Lesser GNU General Public License
 // along with LWES.net.  If not, see <http://www.gnu.org/licenses/>.
 //
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Reflection; 
 
-[assembly: AssemblyTitle("Lwes.net - Light Weight Event System")]
-[assembly: AssemblyDescription(".NET binding for the Light Weight Event System - more information at http://www.lwes.org")]
-
-[assembly: ComVisible(false)]
-[assembly: Guid("c0bf1d1a-7651-471f-87e4-1bd1acabbe77")]
+[assembly: AssemblyFileVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.1.0.12819")]

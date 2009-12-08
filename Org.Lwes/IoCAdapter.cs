@@ -23,6 +23,7 @@ namespace Org.Lwes
 	using System.Diagnostics;
 
 	using Org.Lwes.Properties;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// Utility methods for interacting with IoC containers.
@@ -145,7 +146,24 @@ namespace Org.Lwes
 
 		private static IoCAdapter CreateIoCAdapterFromConfiguration()
 		{
-			throw new NotImplementedException();
+			// TODO: Add config sections for various IoC adapters
+			return new DefaultIoCAdapter();
+		}
+
+		class DefaultIoCAdapter : IoCAdapter
+		{
+			public override bool TryCreate<T>(out T instance)
+			{
+				instance = Activator.CreateInstance<T>();
+				return true;
+			}
+
+			public override bool TryCreate<T>(string name, out T instance)
+			{
+				// no support for named instances
+				instance = default(T);
+				return false;
+			}
 		}
 
 		#endregion Methods

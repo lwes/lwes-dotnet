@@ -22,7 +22,7 @@
 
 #endregion Header
 
-namespace Org.Lwes
+namespace Org.Lwes.Trace
 {
 	using System;
 	using System.Collections.Generic;
@@ -30,7 +30,6 @@ namespace Org.Lwes
 	using System.Security;
 
 	using Org.Lwes.Config;
-	using Org.Lwes.Trace;
 	using Org.Lwes.Trace.Filters;
 
 	/// <summary>
