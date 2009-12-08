@@ -1,0 +1,91 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Org.Lwes", "Org.Lwes\Org.Lwes.csproj", "{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A} = {7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommonItems", "CommonItems", "{3E15B2B5-1A84-400A-BB14-3D51B7822C0E}"
+	ProjectSection(SolutionItems) = preProject
+		CommonItems\AssemblyInfo.common.cs = CommonItems\AssemblyInfo.common.cs
+		CommonItems\AssemblyInfo.version.cs = CommonItems\AssemblyInfo.version.cs
+		CommonItems\AssemblyInfo.version.tt = CommonItems\AssemblyInfo.version.tt
+		CommonItems\lgpl-3.0.rtf = CommonItems\lgpl-3.0.rtf
+		CommonItems\lgpl-3.0.txt = CommonItems\lgpl-3.0.txt
+		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
+		lwes1.vsmdi = lwes1.vsmdi
+		narrange.xml = narrange.xml
+		CommonItems\README.txt = CommonItems\README.txt
+		CommonItems\Sample Configuration.config = CommonItems\Sample Configuration.config
+		CommonItems\Versioning.xml = CommonItems\Versioning.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test Projects", "Test Projects", "{13A695F2-5A42-43E1-8D70-7368C5380E18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Org.Lwes.Tests", "Test Projects\Org.Lwes.Tests\Org.Lwes.Tests.csproj", "{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lwes-test-listener-console", "Test Projects\Lwes-test-listener-console\Lwes-test-listener-console.csproj", "{F4152510-648C-47D3-9C1B-5EBFB935B74D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lwes-test-emitter-console", "Test Projects\Lwes-test-emitter-console\Lwes-test-emitter-console.csproj", "{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doxygen", "doxygen", "{C987BA1E-E760-468C-BC5E-F0F3F441CB93}"
+	ProjectSection(SolutionItems) = preProject
+		doxygen\doxy-config = doxygen\doxy-config
+		doxygen\doxy-custom.css = doxygen\doxy-custom.css
+		doxygen\doxy-footer.html = doxygen\doxy-footer.html
+		doxygen\doxy-header.html = doxygen\doxy-header.html
+		doxygen\DoxygenLayout.xml = doxygen\DoxygenLayout.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildAssistance", "BuildAssistance", "{15606EF3-680D-4659-86A0-A81B2F9C6B53}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateWixProjectWithVersion", "UpdateWixProjectWithVersion\UpdateWixProjectWithVersion.csproj", "{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E160D2C8-2239-479A-9236-D09856A816C0}"
+	ProjectSection(SolutionItems) = preProject
+		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
+		lwes1.vsmdi = lwes1.vsmdi
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = lwes1.vsmdi
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8C399B66-A23D-4BC9-B6BC-4762E70E35AE} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
+		{F4152510-648C-47D3-9C1B-5EBFB935B74D} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
+		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
+		{E160D2C8-2239-479A-9236-D09856A816C0} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
+		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A} = {15606EF3-680D-4659-86A0-A81B2F9C6B53}
+	EndGlobalSection
+EndGlobal
