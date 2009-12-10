@@ -31,12 +31,12 @@ namespace Org.Lwes.Tests
 
 		static void Main(string[] args)
 		{
+			bool userChoseToExit = false;
+			int eventCount = 0, incomingCount = 0;
+			Event mostRecent = default(Event);
+
 			using (IEventListener listener = EventListener.CreateDefault())
 			{
-				bool userChoseToExit = false;
-				int eventCount = 0, incomingCount = 0;
-				Event mostRecent = default(Event);
-
 				Console.WriteLine("LWES EventListener -\r\n  This console will continue to queue and print LWES events until\r\n  the user types 'exit' followed by a carriage return.");
 
 				listener.OnEventArrived += (sender, ev)	=>
@@ -71,13 +71,10 @@ namespace Org.Lwes.Tests
 				} while (!String.Equals(input, "exit", StringComparison.CurrentCultureIgnoreCase));
 
 				userChoseToExit = true;
-				listener.Dispose();
-
-				Thread.Sleep(200);
-				Console.WriteLine("Final event count: {0}", incomingCount.ToString("N0"));
-				Thread.Sleep(2000);
-
 			}
+			Thread.Sleep(200);
+			Console.WriteLine("Final event count: {0}", incomingCount.ToString("N0"));
+			Thread.Sleep(2000);
 		}
 
 		#endregion Methods

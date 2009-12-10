@@ -22,6 +22,8 @@ namespace Org.Lwes.DB
 	using System;
 
 	using Org.Lwes.Config;
+	using Org.Lwes.Trace;
+	using System.Diagnostics;
 
 	/// <summary>
 	/// Utility class for accessing the default IEventTemplateDB implementation.
@@ -44,6 +46,8 @@ namespace Org.Lwes.DB
 		/// </summary>
 		public static IEventTemplateDB CreateDefault()
 		{
+			Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, "EventTemplateDB - Creating default" );
+			
 			IEventTemplateDB result;
 			if (!IoCAdapter.TryCreateFromIoC<IEventTemplateDB>(Constants.DefaultEventTemplateDBContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
@@ -71,8 +75,19 @@ namespace Org.Lwes.DB
 			if (config.TemplateDBs == null) return null;
 
 			TemplateDBConfigurationSection namedTemplateDBConfig = config.TemplateDBs[name];
-			if (namedTemplateDBConfig == null) return null;
+			if (namedTemplateDBConfig == null)
+			{
+				Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventTemplateDB - no configuration for template db: ", name) };
+				});
+				return null;
+			}
 
+			Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, () =>
+			{
+				return new object[] { String.Concat("EventTemplateDB - configuration found for template db: ", name) };
+			});
 			FilePathEventTemplateDB db = new FilePathEventTemplateDB();
 			db.InitializeFromFilePath(namedTemplateDBConfig.Path, namedTemplateDBConfig.IncludeSubdirectories);
 			return db;
@@ -90,6 +105,10 @@ namespace Org.Lwes.DB
 			IEventTemplateDB result;
 			if (!IoCAdapter.TryCreateFromIoC<IEventTemplateDB>(name, out result))
 			{
+				Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventTemplateDB - IoC cannot resolve template db: ", name) };
+				});
 				result = CreateFromConfig(name);
 			}
 			return result;
@@ -97,6 +116,8 @@ namespace Org.Lwes.DB
 
 		private static IEventTemplateDB CreateFallbackTemplateDB()
 		{
+			Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, "EventTemplateDB - using fallback template DB" );
+
 			FilePathEventTemplateDB db = new FilePathEventTemplateDB();
 			db.InitializeFromFilePath(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, true);
 			return db;

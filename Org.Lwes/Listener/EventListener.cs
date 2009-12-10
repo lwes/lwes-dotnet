@@ -23,6 +23,9 @@ namespace Org.Lwes.Listener
 
 	using Org.Lwes.Config;
 	using Org.Lwes.DB;
+	using Org.Lwes.Trace;
+	using System.Diagnostics;
+	using System;
 
 	/// <summary>
 	/// Utility class for accessing the default IEventListener implementation.
@@ -32,7 +35,7 @@ namespace Org.Lwes.Listener
 	/// delegate to the ServiceLocator. The ServiceLocator should declare an instance
 	/// of IEventListener with the name "eventListener".</para>
 	/// <para>If an IoC container is not present, or if a service instance is not defined
-	/// with the name "eventListener" then this utility will create a MutlicastEventListener.</para>
+	/// with the name "eventListener" then this utility will create an EventListener.</para>
 	/// </remarks>
 	public static class EventListener
 	{
@@ -44,6 +47,8 @@ namespace Org.Lwes.Listener
 		/// </summary>
 		public static IEventListener CreateDefault()
 		{
+			Traceable.TraceData(typeof(EventListener), TraceEventType.Verbose, "EventListener - creating default listener");
+
 			IEventListener result;
 			if (!IoCAdapter.TryCreateFromIoC(Constants.DefaultEventListenerContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
@@ -69,8 +74,19 @@ namespace Org.Lwes.Listener
 		{
 			LwesConfigurationSection config = LwesConfigurationSection.Current;
 			ListenerConfigurationSection namedConfig = config.Listeners[name];
-			if (namedConfig == null) return null;
+			if (namedConfig == null)
+			{
+				Traceable.TraceData(typeof(EventListener), TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventListener - no configuration found for listener: ", name) };
+				});
+				return null;
+			}
 
+			Traceable.TraceData(typeof(EventListener), TraceEventType.Verbose, () =>
+			{
+				return new object[] { String.Concat("EventListener - configuration found for listener: ", name) };
+			});
 			if (namedConfig.UseMulticast)
 			{
 				MulticastEventListener mee = new MulticastEventListener();
@@ -105,6 +121,10 @@ namespace Org.Lwes.Listener
 			IEventListener result;
 			if (!IoCAdapter.TryCreateFromIoC<IEventListener>(name, out result))
 			{
+				Traceable.TraceData(typeof(EventListener), TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventListener - IoC cannot resolve listener: ", name) };
+				});
 				result = CreateFromConfig(name);
 			}
 			return result;
@@ -112,6 +132,8 @@ namespace Org.Lwes.Listener
 
 		private static IEventListener CreateFallbackListener()
 		{
+			Traceable.TraceData(typeof(EventListener), TraceEventType.Verbose, "EventListener - using fallback listener");
+			
 			MulticastEventListener emitter = new MulticastEventListener();
 			emitter.InitializeAll(EventTemplateDB.CreateDefault()
 				, Constants.DefaultMulticastAddress

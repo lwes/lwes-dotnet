@@ -26,12 +26,13 @@ namespace Org.Lwes
 
 	using Org.Lwes.DB;
 	using Org.Lwes.Emitter;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// TraceListener implementation that echoes trace events to the 
 	/// light weight event system.
 	/// </summary>
-	public class LwesTraceListener : TraceListener
+	public class LwesTraceListener : TraceListener, ITraceable
 	{
 		#region Fields
 
@@ -73,6 +74,7 @@ namespace Org.Lwes
 		public LwesTraceListener()
 			: base()
 		{
+			this.TraceData(TraceEventType.Verbose, "LwesTraceListener - new");
 		}
 
 		/// <summary>
@@ -82,6 +84,10 @@ namespace Org.Lwes
 		public LwesTraceListener(string listenerName)
 			: base(listenerName)
 		{
+			this.TraceData(TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("LwesTraceListener - new", Environment.NewLine, "\twith name = ", listenerName) };
+				});
 		}
 
 		#endregion Constructors
@@ -249,8 +255,12 @@ namespace Org.Lwes
 		/// </summary>
 		public override void Close()
 		{
+			this.TraceData(TraceEventType.Verbose, "LwesTraceListener - closing");
+
 			base.Close();
 			Util.Dispose(ref _emitter);
+
+			this.TraceData(TraceEventType.Verbose, "LwesTraceListener - closing");
 		}
 
 		/// <summary>

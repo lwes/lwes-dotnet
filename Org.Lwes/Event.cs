@@ -438,7 +438,7 @@ namespace Org.Lwes
 		{
 			StringBuilder s = new StringBuilder(400);
 			s.Append(_template.Name).Append(": { Name: '").Append(_template.Name)
-				.Append("', FromESF: ").Append(_template.FromEsf)
+				.Append("', EsfPresent: ").Append(_template.FromEsf)
 				.Append(", Attributes: {");
 			if (_attributes != null)
 			{
@@ -465,7 +465,7 @@ namespace Org.Lwes
 
 			StringBuilder s = new StringBuilder(400);
 			s.Append(_template.Name).Append(":").Append(nl).Append(" { Name: '").Append(_template.Name)
-				.Append("'").Append(nl).Append("  , FromESF: ").Append(_template.FromEsf)
+				.Append("'").Append(nl).Append("  , EsfPresent: ").Append(_template.FromEsf)
 				.Append(nl).Append("  , Attributes: {");
 			if (_attributes != null)
 			{

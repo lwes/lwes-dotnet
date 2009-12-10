@@ -25,11 +25,13 @@ namespace Org.Lwes.Listener
 
 	using Org.Lwes.DB;
 	using Org.Lwes.Properties;
+	using Org.Lwes.Trace;
+	using System.Diagnostics;
 
 	/// <summary>
 	/// Implementation of the IEventListener for listening to multicast events.
 	/// </summary>
-	public sealed class MulticastEventListener : EventListenerBase
+	public sealed class MulticastEventListener : EventListenerBase, ITraceable
 	{
 		#region Methods
 
@@ -47,11 +49,23 @@ namespace Org.Lwes.Listener
 			, bool parallel
 			, ListenerGarbageHandling garbageHandling)
 		{
+			this.TraceData(TraceEventType.Verbose, () =>
+			{
+				return new object[] { String.Concat("MulticastEventListener Initializing"
+					, Environment.NewLine, "\twith multicastAddress = ", multicastAddress
+					, Environment.NewLine, "\tand multicastPort = ", multicastPort					
+					, Environment.NewLine, "\tand parallel = ", parallel
+					, Environment.NewLine, "\tand garbageHandling = ", garbageHandling
+					) };
+			});
+
 			TemplateDB = db;
 			Address = multicastAddress;
 			Port = multicastPort;
 			IsParallel = parallel;
 			Initialize();
+
+			this.TraceData(TraceEventType.Verbose, "MulticastEventListener Initialized");			
 		}
 
 		/// <summary>
@@ -59,6 +73,8 @@ namespace Org.Lwes.Listener
 		/// </summary>
 		protected override void PerformInitialization()
 		{
+			this.TraceData(TraceEventType.Verbose, "MulticastEventListener finishing initialize");
+
 			base.FinishInitialize(new IPEndPoint(Address, Port),
 				(s, e) =>
 				{

@@ -39,7 +39,7 @@ namespace Org.Lwes.Tests
 				1, "Starting Lwes-test-emitter-console");
 
 			var rand = new Random(Environment.TickCount);
-			var control = new { NumberOfEventsToEmit = 100000, MaxNumberOfAttributes = 25 };
+			var control = new { NumberOfEventsToEmit = 1000000, MaxNumberOfAttributes = 25 };
 
 			Console.WriteLine(String.Format("LWES EventEmitter - \r\nThis console will generate and emit {0} random events to the Light Weight Event System"
 				, control.NumberOfEventsToEmit.ToString("N0")));

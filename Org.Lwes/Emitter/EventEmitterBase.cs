@@ -20,19 +20,20 @@
 namespace Org.Lwes.Emitter
 {
 	using System;
+	using System.Diagnostics;
 	using System.Net;
 	using System.Net.Sockets;
 	using System.Text;
 	using System.Threading;
-
 	using Org.Lwes.DB;
 	using Org.Lwes.ESF;
 	using Org.Lwes.Properties;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// Base class for event emitters.
 	/// </summary>
-	public abstract class EventEmitterBase : IEventEmitter
+	public abstract class EventEmitterBase : IEventEmitter, ITraceable
 	{
 		#region Fields
 
@@ -199,16 +200,7 @@ namespace Org.Lwes.Emitter
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName)
 		{
-			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
-			if (eventName == null) throw new ArgumentNullException("eventName");
-			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
-
-			Event result;
-			if (!_db.TryCreateEvent(eventName, out result, _validate, _enc))
-			{
-				result = new Event(new EventTemplate(false, eventName), false, _enc);
-			}
-			return result;
+			return CreateEvent(eventName, _validate, _enc);
 		}
 
 		/// <summary>
@@ -219,16 +211,7 @@ namespace Org.Lwes.Emitter
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName, SupportedEncoding enc)
 		{
-			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
-			if (eventName == null) throw new ArgumentNullException("eventName");
-			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
-
-			Event result;
-			if (!_db.TryCreateEvent(eventName, out result, _validate, enc))
-			{
-				result = new Event(new EventTemplate(false, eventName), false, enc);
-			}
-			return result;
+			return CreateEvent(eventName, _validate, enc);
 		}
 
 		/// <summary>
@@ -239,16 +222,7 @@ namespace Org.Lwes.Emitter
 		/// <returns>a new LWES event instance</returns>
 		public Event CreateEvent(string eventName, bool validate)
 		{
-			if (!IsInitialized) throw new InvalidOperationException(Resources.Error_NotYetInitialized);
-			if (eventName == null) throw new ArgumentNullException("eventName");
-			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
-
-			Event result;
-			if (!_db.TryCreateEvent(eventName, out result, validate, _enc))
-			{
-				result = new Event(new EventTemplate(false, eventName), validate, _enc);
-			}
-			return result;
+			return CreateEvent(eventName, validate, _enc);			
 		}
 
 		/// <summary>
@@ -264,10 +238,17 @@ namespace Org.Lwes.Emitter
 			if (eventName == null) throw new ArgumentNullException("eventName");
 			if (eventName.Length == 0) throw new ArgumentException(Resources.Error_EmptyStringNotAllowed, "eventName");
 
+			this.TraceData(TraceEventType.Verbose, () => { return new object[] { String.Concat("CreateEvent: ", eventName
+				,	Environment.NewLine, "\twith validate = ", validate
+				, Environment.NewLine, "\tand encoding = ", enc) }; }
+				);
+
 			Event result;
 			if (!_db.TryCreateEvent(eventName, out result, validate, enc))
 			{
-				result = new Event(new EventTemplate(false, eventName), validate, enc);
+				this.TraceData(TraceEventType.Verbose, () => { return new object[] { String.Concat("CreateEvent, event not found in db: ", eventName) }; });
+
+				result = new Event(new EventTemplate(false, eventName), false, _enc);
 			}
 			return result;
 		}
@@ -318,7 +299,9 @@ namespace Org.Lwes.Emitter
 		/// <param name="disposing">Indicates whether the object is being disposed</param>
 		protected virtual void Dispose(bool disposing)
 		{
+			if (disposing) this.TraceData(TraceEventType.Verbose, "EventEmitterBase - disposing");
 			Util.Dispose(ref _emitter);
+			if (disposing) this.TraceData(TraceEventType.Verbose, "EventEmitterBase - disposed");
 		}
 
 		/// <summary>
@@ -356,7 +339,7 @@ namespace Org.Lwes.Emitter
 
 		#region Nested Types
 
-		class DirectEmitter : IEmitter
+		class DirectEmitter : IEmitter, ITraceable
 		{
 			#region Fields
 
@@ -390,33 +373,43 @@ namespace Org.Lwes.Emitter
 				if (_senderState.IsGreaterThan(EmitterState.Active))
 					throw new InvalidOperationException(Resources.Error_EmitterHasEnteredShutdownState);
 
-				_emitEP.SendTo(_sendToEP, LwesSerializer.Serialize(ev));
+				byte[] bytes = LwesSerializer.Serialize(ev);
+				this.TraceData(TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventEmitterBase.DirectEmitter - Emitting to ", _sendToEP, ": ", ev.ToString(true)),
+						String.Concat(" octets: ", Util.BytesToOctets(bytes, 0, bytes.Length)) };
+				});
+				_emitEP.SendTo(_sendToEP, bytes);
 			}
 
 			public void Start(IEventTemplateDB db, IPEndPoint sendToEP, Action<Socket, IPEndPoint> finishSocket)
 			{
+				this.TraceData(TraceEventType.Verbose, "EventEmitterBase.DirectEmitter - Starting");
 				_db = db;
 				_sendToEP = sendToEP;
 				_buffer = BufferManager.AcquireBuffer(null);
 				_emitEP = new UdpEndpoint(sendToEP).Initialize(finishSocket);
 				_senderState.SetState(EmitterState.Active);
+				this.TraceData(TraceEventType.Verbose, "EventEmitterBase.DirectEmitter - Started");
 			}
 
-			private void Dispose(bool p)
+			private void Dispose(bool disposing)
 			{
 				// Signal background threads...
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventEmitterBase.DirectEmitter - disposing, sending stop signal");
 				_senderState.TryTransition(EmitterState.StopSignaled, EmitterState.Active, () =>
 					{
 						Util.Dispose(ref _emitEP);
 						BufferManager.ReleaseBuffer(_buffer);
 						_buffer = null;
+						if (disposing) this.TraceData(TraceEventType.Verbose, "EventEmitterBase.DirectEmitter - disposed");
 					});
 			}
 
 			#endregion Methods
 		}
 
-		class ParallelEmitter : IEmitter
+		class ParallelEmitter : IEmitter, ITraceable
 		{
 			#region Fields
 
@@ -448,16 +441,22 @@ namespace Org.Lwes.Emitter
 
 			public void Emit(Event ev)
 			{
+				this.TraceData(TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventEmitterBase.ParallelEmitter - Queuing for ", _sendToEP, ": ", ev.ToString(true)) };
+				});
 				_dataQueue.Enqueue(LwesSerializer.SerializeToMemoryBuffer(ev));
 				EnsureSenderIsActive();
 			}
 
 			public void Start(IEventTemplateDB db, IPEndPoint sendToEP, Action<Socket, IPEndPoint> finishSocket)
 			{
+				this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - Starting");
 				_db = db;
 				_sendToEP = sendToEP;
 				_emitEP = new UdpEndpoint(sendToEP).Initialize(finishSocket);
 				_emitterState.SetState(EmitterState.Active);
+				this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - Started");
 			}
 
 			void Background_Sender(object unused_state)
@@ -470,6 +469,10 @@ namespace Org.Lwes.Emitter
 					byte[] data;
 					while (_emitterState.IsLessThan(EmitterState.StopSignaled) && _dataQueue.TryDequeue(out data))
 					{
+						this.TraceData(TraceEventType.Verbose, () =>
+						{
+							return new object[] { String.Concat("EventEmitterBase.ParallelEmitter - Background_Sender - Sending to ", _sendToEP, " octects: ", Util.BytesToOctets(data, 0, data.Length)) };
+						});
 						_emitEP.SendTo(_sendToEP, data);
 						BufferManager.ReleaseBuffer(data);
 					}
@@ -477,13 +480,19 @@ namespace Org.Lwes.Emitter
 				finally
 				{
 					int z = Interlocked.Decrement(ref _senders);
-					if (z == 0 && !_dataQueue.IsEmpty)
+					if (_emitterState.IsLessThan(EmitterState.StopSignaled))
+						this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - Background_Sender stopped because queue is empty");
+					else
+						this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - Background_Sender stopped sending because it was signaled to stop");
+
+					if (z == 0 && _emitterState.IsLessThan(EmitterState.StopSignaled) && !_dataQueue.IsEmpty)
 						EnsureSenderIsActive();
 				}
 			}
 
-			private void Dispose(bool p)
+			private void Dispose(bool disposing)
 			{
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - disposing, sending stop signal");
 				// Signal background threads...
 				_emitterState.TryTransition(EmitterState.StopSignaled, EmitterState.Active, () =>
 				{
@@ -497,24 +506,20 @@ namespace Org.Lwes.Emitter
 						BufferManager.ReleaseBuffer(b);
 					}
 					Util.Dispose(ref _emitEP);
+					if (disposing) this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - disposed");
 				});
 			}
 
 			private void EnsureSenderIsActive()
 			{
-				int current = -1, value = Thread.VolatileRead(ref _senders);
-				if (value < 1)
+				var value = Thread.VolatileRead(ref _senders);
+				if (value <= 0)
 				{
 					WaitCallback cb = new WaitCallback(Background_Sender);
-					while (true)
+					if (Interlocked.CompareExchange(ref _senders, value + 1, value) == value)
 					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _senders, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
+						this.TraceData(TraceEventType.Verbose, "EventEmitterBase.ParallelEmitter - Background_Sender started on demand");
+						ThreadPool.QueueUserWorkItem(cb);
 					}
 				}
 			}

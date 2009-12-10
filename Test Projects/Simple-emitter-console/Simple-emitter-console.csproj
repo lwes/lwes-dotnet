@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}</ProjectGuid>
+    <ProjectGuid>{09FAC1D8-298D-457C-BC98-C3328B69D5C7}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>UpdateWixProjectWithVersion</RootNamespace>
-    <AssemblyName>UpdateWixProjectWithVersion</AssemblyName>
+    <RootNamespace>Simple_emitter_console</RootNamespace>
+    <AssemblyName>Simple-emitter-console</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\bin\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -45,27 +45,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\CommonItems\AssemblyInfo.common.cs">
-      <Link>Properties\AssemblyInfo.common.cs</Link>
-    </Compile>
-    <Compile Include="..\CommonItems\AssemblyInfo.version.cs">
-      <Link>AssemblyInfo.version.cs</Link>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>AssemblyInfo.version.tt</DependentUpon>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\CommonItems\AssemblyInfo.version.tt">
-      <Link>AssemblyInfo.version.tt</Link>
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>AssemblyInfo.version.cs</LastGenOutput>
-    </None>
+    <ProjectReference Include="..\..\Org.Lwes\Org.Lwes.csproj">
+      <Project>{67CFCCF0-62A6-4E5A-93B9-71C99C1B394D}</Project>
+      <Name>Org.Lwes</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

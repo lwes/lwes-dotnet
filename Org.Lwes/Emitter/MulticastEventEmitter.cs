@@ -23,11 +23,14 @@ namespace Org.Lwes.Emitter
 	using System.Net.Sockets;
 
 	using Org.Lwes.DB;
+	using System;
+	using Org.Lwes.Trace;
+	using System.Diagnostics;
 
 	/// <summary>
 	/// Event emitter implementation for multicasting the event.
 	/// </summary>
-	public class MulticastEventEmitter : EventEmitterBase
+	public class MulticastEventEmitter : EventEmitterBase, ITraceable
 	{
 		#region Properties
 
@@ -60,6 +63,18 @@ namespace Org.Lwes.Emitter
 			, int multicastTtl
 			, bool parallel)
 		{
+			this.TraceData(TraceEventType.Verbose, () =>
+			{
+				return new object[] { String.Concat("MulticastEventEmitter Initializing"
+					, Environment.NewLine, "\twith validate = ", validate
+					, Environment.NewLine, "\tand encoding = ", enc
+					, Environment.NewLine, "\tand multicastAddress = ", multicastAddress
+					, Environment.NewLine, "\tand multicastPort = ", multicastPort
+					, Environment.NewLine, "\tand multicastTtl = ", multicastTtl
+					, Environment.NewLine, "\tand parallel = ", parallel
+					) };
+			});
+
 			Encoding = enc;
 			Validate = validate;
 			TemplateDB = db;
@@ -68,6 +83,8 @@ namespace Org.Lwes.Emitter
 			MulticastTimeToLive = multicastTtl;
 			IsParallel = parallel;
 			base.Initialize();
+
+			this.TraceData(TraceEventType.Verbose, "MulticastEventEmitter Initialized");			
 		}
 
 		/// <summary>
@@ -86,5 +103,34 @@ namespace Org.Lwes.Emitter
 		}
 
 		#endregion Methods
+
+		public static MulticastEventEmitter CreateInitialized(SupportedEncoding enc
+			, bool validate
+			, IEventTemplateDB db
+			, IPAddress multicastAddress
+			, int multicastPort
+			, int multicastTtl
+			, bool parallel)
+		{
+			if (db == null) throw new ArgumentNullException("db", "db cannot be null");
+			var result = new MulticastEventEmitter();
+			result.InitializeAll(enc, validate, db, multicastAddress, multicastPort, multicastTtl, parallel);
+			return result;
+		}
+
+		public static MulticastEventEmitter CreateInitialized(
+			IPAddress multicastAddress
+			, int multicastPort
+			, int multicastTtl
+			, bool parallel)
+		{
+			return CreateInitialized(SupportedEncoding.Default
+				, false
+				, EventTemplateDB.CreateDefault()
+				, multicastAddress
+				, multicastPort
+				, multicastTtl
+				, parallel);			
+		}
 	}
 }

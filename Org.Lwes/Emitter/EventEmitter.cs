@@ -24,6 +24,8 @@ namespace Org.Lwes.Emitter
 
 	using Org.Lwes.Config;
 	using Org.Lwes.DB;
+	using System.Diagnostics;
+	using Org.Lwes.Trace;
 
 	/// <summary>
 	/// Utility class for accessing the default IEventEmitter implementation.
@@ -37,14 +39,14 @@ namespace Org.Lwes.Emitter
 	/// </remarks>
 	public static class EventEmitter
 	{
-		#region Methods
-
 		/// <summary>
 		/// Accesses the default instance of the IEventEmitter. Delegates to
 		/// an IoC container if present.
 		/// </summary>
 		public static IEventEmitter CreateDefault()
 		{
+			Traceable.TraceData(typeof(EventEmitter), TraceEventType.Verbose, "EventEmitter - creating default emitter");
+
 			IEventEmitter result;
 			if (!IoCAdapter.TryCreateFromIoC<IEventEmitter>(Constants.DefaultEventEmitterContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
@@ -72,8 +74,19 @@ namespace Org.Lwes.Emitter
 			if (config.Emitters == null) return null;
 
 			EmitterConfigurationSection namedConfig = config.Emitters[name];
-			if (namedConfig == null) return null;
+			if (namedConfig == null)
+			{
+				Traceable.TraceData(typeof(EventEmitter), TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventEmitter - no configuration found for emitter: ", name) };
+				});
+				return null;
+			}
 
+			Traceable.TraceData(typeof(EventEmitter), TraceEventType.Verbose, () =>
+			{
+				return new object[] { String.Concat("EventEmitter - configuration found for emitter: ", name) };
+			});
 			if (namedConfig.UseMulticast)
 			{
 				MulticastEventEmitter mee = new MulticastEventEmitter();
@@ -105,6 +118,10 @@ namespace Org.Lwes.Emitter
 			IEventEmitter result;
 			if (!IoCAdapter.TryCreateFromIoC<IEventEmitter>(name, out result))
 			{
+				Traceable.TraceData(typeof(EventEmitter), TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventEmitter - IoC cannot resolve emitter: ", name) };
+				});
 				result = CreateFromConfig(name);
 			}
 			return result;
@@ -112,6 +129,8 @@ namespace Org.Lwes.Emitter
 
 		private static IEventEmitter CreateFallbackEmitter()
 		{
+			Traceable.TraceData(typeof(EventEmitter), TraceEventType.Verbose, "EventEmitter - using fallback emitter");
+
 			MulticastEventEmitter emitter = new MulticastEventEmitter();
 			emitter.InitializeAll(SupportedEncoding.Default
 				, Constants.DefaultPerformValidation
@@ -122,7 +141,5 @@ namespace Org.Lwes.Emitter
 				, true);
 			return emitter;
 		}
-
-		#endregion Methods
 	}
 }

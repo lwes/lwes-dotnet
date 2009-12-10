@@ -26,6 +26,7 @@ namespace Org.Lwes.DB
 	using Org.Lwes.ESF;
 	using Org.Lwes.Properties;
 	using Org.Lwes.Trace;
+	using System.Diagnostics;
 
 	/// <summary>
 	/// Event template database implementation that uses a file path
@@ -97,17 +98,32 @@ namespace Org.Lwes.DB
 			if (_initialized) throw new InvalidOperationException("Already initialized");
 			if (filePath == null) throw new ArgumentNullException("filePath");
 			if (!Directory.Exists(filePath))
+			{
 				throw new IOException(String.Concat("Directory does not exist: ", filePath));
+			}
 
+			Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, () =>
+			{
+				return new object[] { String.Concat("FilePathEventTemplateDB - loading ESF from path: ", filePath) };
+			});
 			EsfParser parser = new EsfParser();
 			SearchOption option = (includeSubdirectories) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
 			foreach (var fn in Directory.GetFiles(filePath, EsfFileSearchPattern, option))
 			{
 				using (FileStream fs = File.Open(fn, FileMode.Open))
 				{
+					Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, () =>
+					{
+						return new object[] { String.Concat("FilePathEventTemplateDB - parsing ESF file: ", fn) };
+					});
 					var templates = parser.ParseEventTemplates(fs);
 					foreach (var evt in templates)
 					{
+						Traceable.TraceData(typeof(EventTemplateDB), TraceEventType.Verbose, () =>
+						{
+							return new object[] { String.Concat("FilePathEventTemplateDB - found event definition: ", evt) };
+						});
+
 						if (_templates.ContainsKey(evt.Name))
 						{							
 							// There is already a template by the same name: warn about it

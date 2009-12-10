@@ -120,21 +120,21 @@ namespace Org.Lwes
 
 		#endregion Fields
 
-		#if DEBUG
+#if DEBUG
 
 		/// <summary>
 		/// Default value indicating whether validation is performed
 		/// </summary>
 		public static readonly bool DefaultPerformValidation = true;
 
-		#else
+#else
 
 		/// <summary>
 		/// Default value indicating whether validation is performed
 		/// </summary>
-		public static readonly bool DefaultPerformValidation = true;
+		public static readonly bool DefaultPerformValidation = false;
 
-		#endif
+#endif
 
 		#region Constructors
 

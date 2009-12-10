@@ -48,6 +48,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		lwes1.vsmdi = lwes1.vsmdi
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simple-emitter-console", "Test Projects\Simple-emitter-console\Simple-emitter-console.csproj", "{09FAC1D8-298D-457C-BC98-C3328B69D5C7}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = lwes1.vsmdi
@@ -77,6 +79,10 @@ Global
 		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09FAC1D8-298D-457C-BC98-C3328B69D5C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09FAC1D8-298D-457C-BC98-C3328B69D5C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09FAC1D8-298D-457C-BC98-C3328B69D5C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09FAC1D8-298D-457C-BC98-C3328B69D5C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -86,6 +92,7 @@ Global
 		{F4152510-648C-47D3-9C1B-5EBFB935B74D} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
 		{5EFA6BA2-7962-4A15-B2B9-6BA9016B955E} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
 		{E160D2C8-2239-479A-9236-D09856A816C0} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
+		{09FAC1D8-298D-457C-BC98-C3328B69D5C7} = {13A695F2-5A42-43E1-8D70-7368C5380E18}
 		{7BE4B024-DB71-4A87-937C-67AFE2A5BE4A} = {15606EF3-680D-4659-86A0-A81B2F9C6B53}
 	EndGlobalSection
 EndGlobal

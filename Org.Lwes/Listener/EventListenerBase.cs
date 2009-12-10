@@ -402,7 +402,9 @@ namespace Org.Lwes.Listener
 		/// <param name="disposing">Indicates whether the object is being disposed</param>
 		protected virtual void Dispose(bool disposing)
 		{
+			if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase - disposing");
 			Util.Dispose(ref _listener);
+			if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase - disposed");
 		}
 
 		/// <summary>
@@ -479,11 +481,10 @@ namespace Org.Lwes.Listener
 
 		private void HandleGarbageData(EndPoint ep, byte[] buffer, int offset, int bytesTransferred)
 		{
-			this.TraceData(TraceEventType.Verbose, new Func<object[]>(() =>
+			this.TraceData(TraceEventType.Verbose, () =>
 				{
 					return new object[] { ((IPEndPoint)ep).ToString(), Util.BytesToOctets(buffer, offset, bytesTransferred) };
-				})
-				);
+				});
 
 			if (_garbageHandling > ListenerGarbageHandling.FailSilently)
 			{
@@ -1002,7 +1003,7 @@ namespace Org.Lwes.Listener
 		/// <li>Notifier - scheduled for a threadpool thread and runs as long as Events are in the notification queue</li>
 		/// </ul>
 		/// </remarks>
-		class ParallelListener : IListener
+		class ParallelListener : IListener, ITraceable
 		{
 			#region Fields
 
@@ -1047,6 +1048,8 @@ namespace Org.Lwes.Listener
 				, Action<Socket, IPEndPoint> finishSocket
 				, EventListenerBase owner)
 			{
+				this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Starting");
+				
 				_db = db;
 				_listener = owner;
 				_anyEP = (listenEP.AddressFamily == AddressFamily.InterNetworkV6)
@@ -1057,12 +1060,18 @@ namespace Org.Lwes.Listener
 
 				_listenEP = new UdpEndpoint(listenEP).Initialize(finishSocket);
 				ParallelReceiver();
+				this.TraceData(TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventListenerBase.ParallelListener - Started state: ", _listenerState.CurrentState) };
+				});
 			}
 
 			internal void Stop()
 			{
 				_listenerState.TryTransition(ListenerState.StopSignaled, ListenerState.Active, () =>
 				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Stopping");
+
 					while (Thread.VolatileRead(ref _deserializers) > 0)
 					{
 						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
@@ -1075,6 +1084,11 @@ namespace Org.Lwes.Listener
 					Util.Dispose(ref _listenEP);
 
 					_listenerState.SpinWaitForState(ListenerState.Stopped, () => Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS));
+
+					this.TraceData(TraceEventType.Verbose, () =>
+					 {
+						 return new object[] { String.Concat("EventListenerBase.ParallelListener - Stopped state: ", _listenerState.CurrentState) };
+					 });
 				});
 			}
 
@@ -1098,6 +1112,7 @@ namespace Org.Lwes.Listener
 						}
 						else if (handling == GarbageHandlingVote.TreatTrafficFromEndpointAsGarbage)
 						{
+							this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Deserializer treating as garbage");
 							_listener.HandleGarbageData(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
 						}
 						// Otherwise the handling was GarbageHandlingStrategy.FailfastForTrafficOnEndpoint
@@ -1107,7 +1122,12 @@ namespace Org.Lwes.Listener
 				finally
 				{
 					int z = Interlocked.Decrement(ref _deserializers);
-					if (z == 0 && !_receiveQueue.IsEmpty)
+					if (_listenerState.IsLessThan(ListenerState.StopSignaled))
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Deserializer stopped because queue is empty");
+					else
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Deserializer stopped sending because it was signaled to stop");
+
+					if (z == 0 && _listenerState.IsLessThan(ListenerState.StopSignaled) && !_receiveQueue.IsEmpty)
 						EnsureDeserializerIsActive();
 				}
 			}
@@ -1122,13 +1142,19 @@ namespace Org.Lwes.Listener
 					Event ev;
 					while (_listenerState.IsLessThan(ListenerState.StopSignaled) && _eventQueue.TryDequeue(out ev))
 					{
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Notifier invoking event notification");
 						_listener.PerformEventArrival(ev);
 					}
 				}
 				finally
 				{
 					int z = Interlocked.Decrement(ref _notifiers);
-					if (z == 0 && !_receiveQueue.IsEmpty)
+					if (_listenerState.IsLessThan(ListenerState.StopSignaled))
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Notifier stopped because queue is empty");
+					else
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Notifier stopped sending because it was signaled to stop");
+
+					if (z == 0 && _listenerState.IsLessThan(ListenerState.StopSignaled) && !_eventQueue.IsEmpty)
 						EnsureNotifierIsActive();
 				}
 			}
@@ -1138,6 +1164,8 @@ namespace Org.Lwes.Listener
 				// Continue until signalled to stop...
 				if (_listenerState.IsLessThan(ListenerState.StopSignaled))
 				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver entered");
+
 					// Acquiring a buffer may block until a buffer
 					// becomes available.
 					byte[] buffer = BufferManager.AcquireBuffer(() => _listenerState.IsGreaterThan(ListenerState.Active));
@@ -1151,13 +1179,21 @@ namespace Org.Lwes.Listener
 							{
 								// Reschedule the receiver before pulling the buffer out, we want to catch receives
 								// in the tightest loop possible, although we don't want to keep a threadpool thread
-								// *forever* and possibly cause thread-starvation in for other jobs so we continually
+								// *forever* and possibly cause thread-starvation in other jobs; we continually
 								// put the job back in the queue - this way our parallelism plays nicely with other
 								// jobs - now, if only the other jobs were programmed to give up their threads periodically
 								// too... hmmm!
 								ThreadPool.QueueUserWorkItem(new WaitCallback(Background_ParallelReceiver));
 								if (op.BytesTransferred > 0)
 								{
+									this.TraceData(TraceEventType.Verbose, () =>
+										{
+											return new object[] { String.Concat("EventListenerBase.ParallelListener - received from ", 
+												op.RemoteEndPoint,
+												" octets: "
+												, Util.BytesToOctets(op.Buffer, 0, op.BytesTransferred)) };
+											});
+
 									_receiveQueue.Enqueue(new ReceiveCapture(op.RemoteEndPoint, op.Buffer, op.BytesTransferred));
 
 									EnsureDeserializerIsActive();
@@ -1165,6 +1201,8 @@ namespace Org.Lwes.Listener
 							}
 							else if (op.SocketError == SocketError.OperationAborted)
 							{
+								this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver async event aborted");
+
 								// This is the dispose or stop call. fall through
 								CascadeStopSignal();
 							}
@@ -1172,6 +1210,7 @@ namespace Org.Lwes.Listener
 							return false;
 						}, null);
 
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver exited");
 						return;
 					}
 				}
@@ -1184,10 +1223,12 @@ namespace Org.Lwes.Listener
 			{
 				_listenerState.TryTransition(ListenerState.Stopping, ListenerState.StopSignaled, () =>
 				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - CascadeStopSignal ensuring deserializers are stopped");
 					while (Thread.VolatileRead(ref _deserializers) > 0)
 					{
 						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
 					}
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - CascadeStopSignal ensuring notifiers are stopped");
 					while (Thread.VolatileRead(ref _notifiers) > 0)
 					{
 						Thread.Sleep(CDisposeBackgroundThreadWaitTimeMS);
@@ -1198,44 +1239,40 @@ namespace Org.Lwes.Listener
 
 			private void Dispose(bool disposing)
 			{
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - disposing");
+
 				if (_listenerState.CurrentState == ListenerState.Active)
 					Stop();
+
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - disposed");
 			}
 
 			private void EnsureDeserializerIsActive()
 			{
-				int current = -1, value = Thread.VolatileRead(ref _deserializers);
-				if (value < 1)
+				var value = Thread.VolatileRead(ref _deserializers);
+
+				if (value <= 0)
 				{
 					WaitCallback cb = new WaitCallback(Background_Deserializer);
-					while (true)
+					if (Interlocked.CompareExchange(ref _deserializers, value + 1, value) == value)
 					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _deserializers, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Deserializer started on demand");
+						ThreadPool.QueueUserWorkItem(cb);
 					}
 				}
 			}
 
 			private void EnsureNotifierIsActive()
 			{
-				int current = -1, value = Thread.VolatileRead(ref _notifiers);
-				if (value < 1)
+				var value = Thread.VolatileRead(ref _notifiers);
+
+				if (value <= 0)
 				{
 					WaitCallback cb = new WaitCallback(Background_Notifier);
-					while (true)
+					if (Interlocked.CompareExchange(ref _notifiers, value + 1, value) == value)
 					{
-						current = value;
-						value = Interlocked.CompareExchange(ref _notifiers, value + 1, current);
-						if (value == current)
-						{
-							ThreadPool.QueueUserWorkItem(cb);
-							break;
-						}
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Notifier started on demand");
+						ThreadPool.QueueUserWorkItem(cb);
 					}
 				}
 			}
@@ -1262,9 +1299,16 @@ namespace Org.Lwes.Listener
 					ev.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address);
 					ev.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
 					_eventQueue.Enqueue(ev);
+
+					this.TraceData(TraceEventType.Verbose, () =>
+						{
+							return new object[] { String.Concat("EventListenerBase.ParallelListener - PerformEventDeserializationAndQueueForNotification deserialized event: ", 
+								ev.ToString(true)) };
+						});
 				}
 				catch (BadLwesDataException)
 				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - PerformEventDeserializationAndQueueForNotification received unrecognized data, treating as garbage");
 					_listener.HandleGarbageData(rcep, buffer, offset, bytesTransferred);
 				}
 

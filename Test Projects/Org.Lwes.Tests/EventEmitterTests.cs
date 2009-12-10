@@ -24,7 +24,7 @@
 		#region Methods
 
 		[TestMethod]
-		public void AccessDefaultListener()
+		public void AccessDefaultEmitter()
 		{
 			var e = new
 			{
