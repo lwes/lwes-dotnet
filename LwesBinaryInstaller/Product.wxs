@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<?define VersionStamp="0.1.352.14076"?>
+<?define VersionStamp="0.1.352.25769"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="f024bebe-8e5c-4a87-acb0-c0cdc30810e4" Name="Light Weight Event System v$(var.VersionStamp)" Language="1033" Version="$(var.VersionStamp)" Manufacturer="Lwes.Org" UpgradeCode="fc5c69fa-0a95-4cec-adbb-1e55d1ada11b">
     <Package InstallerVersion="200" Compressed="yes" />

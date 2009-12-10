@@ -45,14 +45,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E160D2C8-2239-479A-9236-D09856A816C0}"
 	ProjectSection(SolutionItems) = preProject
 		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
-		lwes1.vsmdi = lwes1.vsmdi
+		lwes-core.vsmdi = lwes-core.vsmdi
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simple-emitter-console", "Test Projects\Simple-emitter-console\Simple-emitter-console.csproj", "{09FAC1D8-298D-457C-BC98-C3328B69D5C7}"
 EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = lwes1.vsmdi
+		CategoryFile = lwes-core.vsmdi
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

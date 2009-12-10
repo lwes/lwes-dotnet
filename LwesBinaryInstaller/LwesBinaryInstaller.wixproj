@@ -6,7 +6,7 @@
     <ProductVersion>3.0</ProductVersion>
     <ProjectGuid>{8cfde627-6ad7-4da4-b016-3fbfc90c976b}</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <VersionStamp>0.1.352.14076</VersionStamp>
+    <VersionStamp>0.1.352.25769</VersionStamp>
     <OutputName>LwesBinaryInstaller$(VersionStamp)</OutputName>
     <OutputType>Package</OutputType>
     <WixToolPath>..\3rdParty\wix\v3.0.5419.0\</WixToolPath>

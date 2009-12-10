@@ -995,10 +995,12 @@ namespace Org.Lwes.Listener
 
 		/// <remarks>
 		/// Uses the threadpool and overlapped IO on the recieving socket. This listener
-		/// will consume between 0 and 3 threads from the threadpool, depending on which
+		/// will consume 0 or more threads from the threadpool, depending on which
 		/// jobs are active. The jobs may consist of the following:
 		/// <ul>
-		/// <li>Receiver - invoked by the socket on a threadpool thread when input is received</li>
+		/// <li>Receiver - invoked by the socket on a threadpool thread when input is received, the receive algorithm
+		/// re-schedules the overlapped receive before it begins processing so the receiver code may be invoked in
+		/// parallel on multiple threadpool threads.</li>
 		/// <li>Deserializer - scheduled for a threadpool thread and runs as long as buffers are in the receive queue</li>
 		/// <li>Notifier - scheduled for a threadpool thread and runs as long as Events are in the notification queue</li>
 		/// </ul>
@@ -1015,6 +1017,7 @@ namespace Org.Lwes.Listener
 			EventListenerBase _listener;
 			Status<ListenerState> _listenerState;
 			int _notifiers;
+			int _receivers;
 			SimpleLockFreeQueue<ReceiveCapture> _receiveQueue;
 
 			#endregion Fields
@@ -1123,9 +1126,9 @@ namespace Org.Lwes.Listener
 				{
 					int z = Interlocked.Decrement(ref _deserializers);
 					if (_listenerState.IsLessThan(ListenerState.StopSignaled))
-						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Deserializer stopped because queue is empty");
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Deserializer stopped because queue is empty");
 					else
-						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Deserializer stopped sending because it was signaled to stop");
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Deserializer stopped sending because it was signaled to stop");
 
 					if (z == 0 && _listenerState.IsLessThan(ListenerState.StopSignaled) && !_receiveQueue.IsEmpty)
 						EnsureDeserializerIsActive();
@@ -1150,9 +1153,9 @@ namespace Org.Lwes.Listener
 				{
 					int z = Interlocked.Decrement(ref _notifiers);
 					if (_listenerState.IsLessThan(ListenerState.StopSignaled))
-						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Notifier stopped because queue is empty");
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Notifier stopped because queue is empty");
 					else
-						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelEmitter - Background_Notifier stopped sending because it was signaled to stop");
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Notifier stopped sending because it was signaled to stop");
 
 					if (z == 0 && _listenerState.IsLessThan(ListenerState.StopSignaled) && !_eventQueue.IsEmpty)
 						EnsureNotifierIsActive();
@@ -1161,62 +1164,60 @@ namespace Org.Lwes.Listener
 
 			private void Background_ParallelReceiver(object unused_state)
 			{
-				// Continue until signalled to stop...
-				if (_listenerState.IsLessThan(ListenerState.StopSignaled))
+				// Acquiring a buffer may block until a buffer
+				// becomes available.
+				byte[] buffer = BufferManager.AcquireBuffer(() => _listenerState.IsGreaterThan(ListenerState.Active));
+
+				// If the buffer is null then the stop-signal was received while acquiring a buffer
+				if (buffer != null)
 				{
-					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver entered");
+					_listenEP.ReceiveFromAsync(_anyEP, buffer, 0, buffer.Length, ReceiveFromAsyncCallback, null);
 
-					// Acquiring a buffer may block until a buffer
-					// becomes available.
-					byte[] buffer = BufferManager.AcquireBuffer(() => _listenerState.IsGreaterThan(ListenerState.Active));
+					return;
+				}
 
-					// If the buffer is null then the stop-signal was received while acquiring a buffer
-					if (buffer != null)
-					{
-						_listenEP.ReceiveFromAsync(_anyEP, buffer, 0, buffer.Length, (op) =>
+				// We get here if the receiver is signaled to stop before it got started.
+				CascadeStopSignal();
+			}
+
+			private bool ReceiveFromAsyncCallback(EndPointOpState op)
+			{
+				if (op.SocketError == SocketError.Success)
+				{
+						// Acquiring a buffer may block until a buffer
+						// becomes available.
+						byte[] buffer = BufferManager.AcquireBuffer(() => _listenerState.IsGreaterThan(ListenerState.Active));
+
+						// If the buffer is null then the stop-signal was received while acquiring a buffer
+						if (buffer != null)
 						{
-							if (op.SocketError == SocketError.Success)
-							{
-								// Reschedule the receiver before pulling the buffer out, we want to catch receives
-								// in the tightest loop possible, although we don't want to keep a threadpool thread
-								// *forever* and possibly cause thread-starvation in other jobs; we continually
-								// put the job back in the queue - this way our parallelism plays nicely with other
-								// jobs - now, if only the other jobs were programmed to give up their threads periodically
-								// too... hmmm!
-								ThreadPool.QueueUserWorkItem(new WaitCallback(Background_ParallelReceiver));
-								if (op.BytesTransferred > 0)
-								{
-									this.TraceData(TraceEventType.Verbose, () =>
-										{
-											return new object[] { String.Concat("EventListenerBase.ParallelListener - received from ", 
+							_listenEP.ReceiveFromAsync(_anyEP, buffer, 0, buffer.Length, ReceiveFromAsyncCallback, null);
+						}
+										
+					if (op.BytesTransferred > 0)
+					{
+						this.TraceData(TraceEventType.Verbose, () =>
+						{
+							return new object[] { String.Concat("EventListenerBase.ParallelListener - Overlapped received from ", 
 												op.RemoteEndPoint,
 												" octets: "
 												, Util.BytesToOctets(op.Buffer, 0, op.BytesTransferred)) };
-											});
+						});
 
-									_receiveQueue.Enqueue(new ReceiveCapture(op.RemoteEndPoint, op.Buffer, op.BytesTransferred));
+						_receiveQueue.Enqueue(new ReceiveCapture(op.RemoteEndPoint, op.Buffer, op.BytesTransferred));
 
-									EnsureDeserializerIsActive();
-								}
-							}
-							else if (op.SocketError == SocketError.OperationAborted)
-							{
-								this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver async event aborted");
-
-								// This is the dispose or stop call. fall through
-								CascadeStopSignal();
-							}
-
-							return false;
-						}, null);
-
-						this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver exited");
-						return;
+						EnsureDeserializerIsActive();
 					}
 				}
+				else if (op.SocketError == SocketError.OperationAborted)
+				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver async event aborted");
 
-				// We get here if the receiver is signaled to stop.
-				CascadeStopSignal();
+					// This is the dispose or stop call. fall through
+					CascadeStopSignal();
+				}
+
+				return false;
 			}
 
 			private void CascadeStopSignal()
@@ -1239,12 +1240,12 @@ namespace Org.Lwes.Listener
 
 			private void Dispose(bool disposing)
 			{
-				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - disposing");
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Disposing");
 
 				if (_listenerState.CurrentState == ListenerState.Active)
 					Stop();
 
-				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - disposed");
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Disposed");
 			}
 
 			private void EnsureDeserializerIsActive()
