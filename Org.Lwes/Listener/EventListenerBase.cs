@@ -402,9 +402,9 @@ namespace Org.Lwes.Listener
 		/// <param name="disposing">Indicates whether the object is being disposed</param>
 		protected virtual void Dispose(bool disposing)
 		{
-			if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase - disposing");
+			if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase - Disposing");
 			Util.Dispose(ref _listener);
-			if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase - disposed");
+			if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase - Disposed");
 		}
 
 		/// <summary>
@@ -546,7 +546,7 @@ namespace Org.Lwes.Listener
 		/// threads, one to listen and deserialize the events and another to perform
 		/// the notifications.
 		/// </remarks>
-		class BackgroundThreadListener : IListener
+		class BackgroundThreadListener : IListener, ITraceable
 		{
 			#region Fields
 
@@ -597,6 +597,8 @@ namespace Org.Lwes.Listener
 				, Action<Socket, IPEndPoint> finishSocket
 				, EventListenerBase listener)
 			{
+				this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Starting");
+
 				_db = db;
 				_listener = listener;
 				_anyEP = (listenEP.AddressFamily == AddressFamily.InterNetworkV6)
@@ -614,16 +616,31 @@ namespace Org.Lwes.Listener
 				_notifier = new Thread(Background_Notifier);
 				_notifier.IsBackground = true;
 				_notifier.Start();
+
+				this.TraceData(TraceEventType.Verbose, () =>
+				{
+					return new object[] { String.Concat("EventListenerBase.BackgroundThreadListener - Started state: ", _recieverState.CurrentState) };
+				});
 			}
 
 			internal void Stop()
 			{
 				if (_recieverState.TryTransition(ListenerState.StopSignaled, ListenerState.Active))
 				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Stopping");
+
 					// Close the listener, this will cause the receiver thread to wakeup
 					// if it is blocked waiting for IO on the socket.
 					Util.Dispose(ref _listenEP);
 					_reciever.Join();
+
+					this.TraceData(TraceEventType.Verbose, () =>
+					{
+						return new object[] { String.Concat("EventListenerBase.BackgroundThreadListener - Stopped state:"
+							, Environment.NewLine, "\treceiver = ", _recieverState.CurrentState
+							, Environment.NewLine, "\tnotifier = ", _notifierState.CurrentState
+							) };
+					});
 				}
 			}
 
@@ -649,15 +666,18 @@ namespace Org.Lwes.Listener
 							// If the stop signal arrived during a wait then bail out...
 							if (_notifierState.CurrentState == ListenerState.StopSignaled)
 							{
-								_notifierState.SetState(ListenerState.Stopped);
 								break;
 							}
 							// otherwise we're active again
 							_notifierState.SetState(ListenerState.Active);
 						}
 					}
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Background_Notifier invoking event notification");
 					_listener.PerformEventArrival(ev);
 				}
+
+				_notifierState.SetState(ListenerState.Stopped);
+				this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Background_Notifier stopped");
 			}
 
 			private void Background_Receiver(object unused_state)
@@ -674,6 +694,14 @@ namespace Org.Lwes.Listener
 							int bytesTransferred = _listenEP.ReceiveFrom(ref rcep, _buffer, 0, _buffer.Length);
 							if (bytesTransferred > 0)
 							{
+								this.TraceData(TraceEventType.Verbose, () =>
+								{
+									return new object[] { String.Concat("EventListenerBase.BackgroundThreadListener - Background_Receiver received from ", 
+												rcep,
+												" octets: "
+												, Util.BytesToOctets(_buffer, 0, bytesTransferred)) };
+								});
+
 								GarbageHandlingVote handling = _listener.GetTrafficStrategyForEndpoint(rcep);
 								if (handling == GarbageHandlingVote.None)
 								{
@@ -681,6 +709,8 @@ namespace Org.Lwes.Listener
 								}
 								else if (handling == GarbageHandlingVote.TreatTrafficFromEndpointAsGarbage)
 								{
+									this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Background_Receiver treating event as garbage");
+
 									_listener.HandleGarbageData(rcep, _buffer, 0, bytesTransferred);
 								}
 								// Otherwise the handling was GarbageHandlingStrategy.FailfastForTrafficOnEndpoint
@@ -695,23 +725,28 @@ namespace Org.Lwes.Listener
 					}
 					if (_recieverState.TryTransition(ListenerState.Stopping, ListenerState.StopSignaled))
 					{
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Background_Receiver stopping, cascading stop signal to notifier");
+
 						// Cascade the stop signal to the notifier and wait for it to exit...
 						_notifierState.SetState(ListenerState.StopSignaled);
+						lock (_notifierWaitObject) { Monitor.PulseAll(_notifierWaitObject); }
 						_notifier.Join(CDisposeBackgroundThreadWaitTimeMS);
+						_recieverState.SetState(ListenerState.Stopped);
+
+						this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Background_Receiver stopped");
 					}
 				}
 			}
 
 			private void Dispose(bool disposing)
 			{
-				// Signal background threads...
-				_recieverState.TryTransition(ListenerState.StopSignaled, ListenerState.Active, () =>
-					{
-						Util.Dispose(ref _listenEP);
-						_reciever.Join(CDisposeBackgroundThreadWaitTimeMS);
-						BufferManager.ReleaseBuffer(_buffer);
-						_buffer = null;
-					});
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Disposing");
+				
+				this.Stop();
+				BufferManager.ReleaseBuffer(_buffer);
+				_buffer = null;		
+
+				if (disposing) this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - Disposing");
 			}
 
 			private void PerformEventDeserializationAndQueueForNotification(EndPoint rcep
@@ -727,9 +762,16 @@ namespace Org.Lwes.Listener
 					ev.SetValue(Constants.MetaEventInfoAttributes.SenderIP.Name, ep.Address);
 					ev.SetValue(Constants.MetaEventInfoAttributes.SenderPort.Name, ep.Port);
 					_eventQueue.Enqueue(ev);
+					
+					this.TraceData(TraceEventType.Verbose, () =>
+						{
+							return new object[] { String.Concat("EventListenerBase.BackgroundThreadListener - PerformEventDeserializationAndQueueForNotification deserialized event: ", 
+								ev.ToString(true)) };
+						});
 				}
 				catch (BadLwesDataException)
 				{
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.BackgroundThreadListener - PerformEventDeserializationAndQueueForNotification received unrecognized data, treating as garbage");
 					_listener.HandleGarbageData(rcep, buffer, offset, bytesTransferred);
 				}
 
@@ -1115,7 +1157,7 @@ namespace Org.Lwes.Listener
 						}
 						else if (handling == GarbageHandlingVote.TreatTrafficFromEndpointAsGarbage)
 						{
-							this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Deserializer treating as garbage");
+							this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_Deserializer treating event as garbage");
 							_listener.HandleGarbageData(input.RemoteEndPoint, input.Buffer, 0, input.BytesTransferred);
 						}
 						// Otherwise the handling was GarbageHandlingStrategy.FailfastForTrafficOnEndpoint
@@ -1170,8 +1212,9 @@ namespace Org.Lwes.Listener
 
 				// If the buffer is null then the stop-signal was received while acquiring a buffer
 				if (buffer != null)
-				{
+				{							
 					_listenEP.ReceiveFromAsync(_anyEP, buffer, 0, buffer.Length, ReceiveFromAsyncCallback, null);
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver Overlapped receive started");
 
 					return;
 				}
@@ -1211,7 +1254,7 @@ namespace Org.Lwes.Listener
 				}
 				else if (op.SocketError == SocketError.OperationAborted)
 				{
-					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver async event aborted");
+					this.TraceData(TraceEventType.Verbose, "EventListenerBase.ParallelListener - Background_ParallelReceiver overlapped receive stopped");
 
 					// This is the dispose or stop call. fall through
 					CascadeStopSignal();
