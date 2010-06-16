@@ -1,0 +1,22 @@
+﻿#
+# TraceMessage is an event type for trace messages emitted by dotNet apps.
+# 
+# This is a generic event type that allows trace messages written to the
+# .NET BCL's diagnostics trace framework to be emitted to LWES.
+#
+TraceMessage
+{ 
+  int32  ProcessId;             # id of the process that created the message (OS process)
+  int32  ThreadId;              # id of the thread that created the message (OS thread id)
+  string Source;                # a name used to identify the output, typically the name of the application that generated the trace message
+  string RelatedActivityID;     # application defined string (GUID) identifying the related activity
+  int32  ID;                    # identity of the event - corresponds with the trace event ID in dotNet
+  int64  Timestamp;             # local time ticks indicating when the event was generated
+  string TraceEventType;        # one of (Critical, Error, Warning, Information, Verbose, Start, Stop, Suspend, Resume, Transfer)
+
+  string LogicalOperationStack; # if present - indicates the logical operation stack
+  string Callstack;             # if present - indicates the callstack
+  
+  string Message;               # the text of the trace message
+  string Data;                  # data associated with the trace message  
+}

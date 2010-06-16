@@ -225,12 +225,12 @@ namespace Org.Lwes
 								int port = (Port == 0) ? Constants.CDefaultMulticastPort : Port;
 								int ttl = (MulticastTimeToLive == 0) ? Constants.CDefaultMulticastTtl : MulticastTimeToLive;
 								emitter.InitializeAll(SupportedEncoding.Default,
-			#if DEBUG
-			 true,
-			#else
+#if DEBUG
+ true,
+#else
 									false,
-			#endif
-			 EventTemplateDB.CreateDefault(),
+#endif
+ EventTemplateDB.CreateDefault(),
 									addy,
 									port,
 									ttl,
@@ -277,10 +277,10 @@ namespace Org.Lwes
 		public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, object data)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage);
-				ev.SetValue(AttributeName_ProcessId, eventCache.ProcessId);
-				ev.SetValue(AttributeName_ThreadId, eventCache.ThreadId);
-				ev.SetValue(AttributeName_DateTime, eventCache.DateTime.ToString("u"));
-				ev.SetValue(AttributeName_Timestamp, eventCache.Timestamp);
+			ev.SetValue(AttributeName_ProcessId, eventCache.ProcessId);
+			ev.SetValue(AttributeName_ThreadId, eventCache.ThreadId);
+			ev.SetValue(AttributeName_DateTime, eventCache.DateTime.ToString("u"));
+			ev.SetValue(AttributeName_Timestamp, eventCache.Timestamp);
 			if (eventType <= TraceEventType.Warning)
 			{
 				ev.SetValue(AttributeName_Callstack, Convert.ToString(eventCache.Callstack));
@@ -288,8 +288,8 @@ namespace Org.Lwes
 			}
 			ev.SetValue(AttributeName_Source, source);
 			ev.SetValue(AttributeName_TraceEventType, eventType.ToString());
-				ev.SetValue(AttributeName_ID, id);
-				ev.SetValue(AttributeName_Data, Convert.ToString(data));
+			ev.SetValue(AttributeName_ID, id);
+			ev.SetValue(AttributeName_Data, Convert.ToString(data));
 			_emitter.Emit(ev);
 		}
 
@@ -307,18 +307,18 @@ namespace Org.Lwes
 		public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, params object[] data)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage);
-				ev.SetValue(AttributeName_ProcessId, eventCache.ProcessId);
-				ev.SetValue(AttributeName_ThreadId, eventCache.ThreadId);
-				ev.SetValue(AttributeName_DateTime, eventCache.DateTime.ToString("u"));
-				ev.SetValue(AttributeName_Timestamp, eventCache.Timestamp);
+			ev.SetValue(AttributeName_ProcessId, eventCache.ProcessId);
+			ev.SetValue(AttributeName_ThreadId, eventCache.ThreadId);
+			ev.SetValue(AttributeName_DateTime, eventCache.DateTime.ToString("u"));
+			ev.SetValue(AttributeName_Timestamp, eventCache.Timestamp);
 			if (eventType <= TraceEventType.Warning)
 			{
 				ev.SetValue(AttributeName_Callstack, Convert.ToString(eventCache.Callstack));
 				ev.SetValue(AttributeName_LogicalOperationStack, Convert.ToString(eventCache.LogicalOperationStack));
 			}
 			ev.SetValue(AttributeName_Source, source);
-				ev.SetValue(AttributeName_TraceEventType, eventType.ToString());
-				ev.SetValue(AttributeName_ID, id);
+			ev.SetValue(AttributeName_TraceEventType, eventType.ToString());
+			ev.SetValue(AttributeName_ID, id);
 			for (int i = 0; i < data.Length; i++)
 			{
 				ev.SetValue(String.Concat(AttributeName_Data, "_", i), Convert.ToString(data[i]));
@@ -339,10 +339,10 @@ namespace Org.Lwes
 		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id)
 		{
 			Event ev = Emitter.CreateEvent(EventName_TraceMessage);
-				ev.SetValue(AttributeName_ProcessId, eventCache.ProcessId);
-				ev.SetValue(AttributeName_ThreadId, eventCache.ThreadId);
-				ev.SetValue(AttributeName_DateTime, eventCache.DateTime.ToString("u"));
-				ev.SetValue(AttributeName_Timestamp, eventCache.Timestamp);
+			ev.SetValue(AttributeName_ProcessId, eventCache.ProcessId);
+			ev.SetValue(AttributeName_ThreadId, eventCache.ThreadId);
+			ev.SetValue(AttributeName_DateTime, eventCache.DateTime.ToString("u"));
+			ev.SetValue(AttributeName_Timestamp, eventCache.Timestamp);
 			if (eventType <= TraceEventType.Warning)
 			{
 				ev.SetValue(AttributeName_Callstack, Convert.ToString(eventCache.Callstack));
@@ -350,7 +350,7 @@ namespace Org.Lwes
 			}
 			ev.SetValue(AttributeName_Source, source);
 			ev.SetValue(AttributeName_TraceEventType, eventType.ToString());
-				ev.SetValue(AttributeName_ID, id);
+			ev.SetValue(AttributeName_ID, id);
 			_emitter.Emit(ev);
 		}
 
@@ -377,7 +377,7 @@ namespace Org.Lwes
 			if (eventType <= TraceEventType.Warning)
 			{
 				ev.SetValue(AttributeName_Callstack, Convert.ToString(eventCache.Callstack));
-			ev.SetValue(AttributeName_LogicalOperationStack, Convert.ToString(eventCache.LogicalOperationStack));
+				ev.SetValue(AttributeName_LogicalOperationStack, Convert.ToString(eventCache.LogicalOperationStack));
 			}
 			ev.SetValue(AttributeName_Source, source);
 			ev.SetValue(AttributeName_TraceEventType, eventType.ToString());
@@ -407,7 +407,7 @@ namespace Org.Lwes
 			if (eventType <= TraceEventType.Warning)
 			{
 				ev.SetValue(AttributeName_Callstack, Convert.ToString(eventCache.Callstack));
-			ev.SetValue(AttributeName_LogicalOperationStack, Convert.ToString(eventCache.LogicalOperationStack));
+				ev.SetValue(AttributeName_LogicalOperationStack, Convert.ToString(eventCache.LogicalOperationStack));
 			}
 			ev.SetValue(AttributeName_Source, source);
 			ev.SetValue(AttributeName_TraceEventType, eventType.ToString());

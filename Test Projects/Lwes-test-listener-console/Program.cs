@@ -24,26 +24,59 @@ namespace Org.Lwes.Tests
 
 	using Org.Lwes;
 	using Org.Lwes.Listener;
+	using System.Text.RegularExpressions;
+	using System.Collections.Specialized;
+	using System.IO;
 
 	class Program
 	{
-		#region Methods
-
 		static void Main(string[] args)
 		{
+			var arguments = new Arguments(args);
+
 			bool userChoseToExit = false;
 			int eventCount = 0, incomingCount = 0;
 			Event mostRecent = default(Event);
+			SimpleLockFreeQueue<Event> writeQ = null;
+			var fileName = arguments["f"];
+
+			if (!String.IsNullOrEmpty(fileName))
+			{
+				writeQ = new SimpleLockFreeQueue<Event>();
+				var dir = Path.GetDirectoryName(fileName);
+				if (!String.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+				{
+					Directory.CreateDirectory(dir);
+				}
+
+				// Start the file writer...
+				ThreadPool.QueueUserWorkItem(new WaitCallback((s) =>
+				{					
+					using (var f = File.CreateText(fileName))
+					{
+						while (!userChoseToExit)
+						{
+							Event ev;
+							while (writeQ.TryDequeue(out ev))
+							{
+								f.Write(ev.ToString(true));
+							}
+							Thread.Sleep(200);
+						}
+					}
+				}));
+			}
 
 			using (IEventListener listener = EventListener.CreateDefault())
 			{
 				Console.WriteLine("LWES EventListener -\r\n  This console will continue to queue and print LWES events until\r\n  the user types 'exit' followed by a carriage return.");
 
-				listener.OnEventArrived += (sender, ev)	=>
+				listener.OnEventArrived += (sender, ev) =>
 					{
 						Thread.MemoryBarrier();
 						mostRecent = ev;
 						Thread.MemoryBarrier();
+						if (writeQ != null) writeQ.Enqueue(ev);
 						Interlocked.Increment(ref incomingCount);
 					};
 
@@ -75,8 +108,78 @@ namespace Org.Lwes.Tests
 			Thread.Sleep(200);
 			Console.WriteLine("Final event count: {0}", incomingCount.ToString("N0"));
 			Thread.Sleep(2000);
+		}		
+	}
+
+	public class Arguments
+	{
+		StringDictionary _params;
+
+		public Arguments(string[] args)
+		{
+			_params = new StringDictionary();
+			Regex spliter = new Regex(@"^-{1,2}|^/|=|:", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+			Regex remover = new Regex(@"^['""]?(.*?)['""]?$",	RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+			string parm = null;
+			string[] parts;
+
+			foreach (var a in args)
+			{
+				parts = spliter.Split(a, 3);
+				switch (parts.Length)
+				{
+					case 1:
+						if (parm != null)
+						{
+							if (!_params.ContainsKey(parm))
+							{
+								parts[0] = remover.Replace(parts[0], "$1");
+								_params.Add(parm, parts[0]);
+							}
+							parm = null;
+						}
+						break;
+					case 2:
+						if (parm != null)
+						{
+							if (!_params.ContainsKey(parm))
+								_params.Add(parm, "true");
+						}
+						parm = parts[1];
+						break;
+					case 3:
+						if (parm != null)
+						{
+							if (!_params.ContainsKey(parm))
+								_params.Add(parm, "true");
+						}
+						parm = parts[1];
+						if (!_params.ContainsKey(parm))
+						{
+							parts[2] = remover.Replace(parts[2], "$1");
+							_params.Add(parm, parts[2]);
+						}
+
+						parm = null;
+						break;
+				}
+			}
+
+			if (parm != null)
+			{
+				if (!_params.ContainsKey(parm))
+					_params.Add(parm, "true");
+			}
 		}
 
-		#endregion Methods
+		public string this[string Param]
+		{
+			get
+			{
+				return (_params[Param]);
+			}
+		}
 	}
+
 }

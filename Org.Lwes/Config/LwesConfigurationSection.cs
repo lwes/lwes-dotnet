@@ -58,6 +58,8 @@ namespace Org.Lwes.Config
 		/// </summary>
 		public const string PropertyName_templateDBs = "templateDBs";
 
+		public const string PropertyName_defaultEmitter = "defaultEmitter";
+
 		/// <summary>
 		/// Section name used for configuring the Light Weight Event System.
 		/// </summary>
@@ -66,6 +68,18 @@ namespace Org.Lwes.Config
 		#endregion Fields
 
 		#region Properties
+
+		/// <summary>
+		/// Indicates the name of the emitter used as default.
+		/// </summary>
+		[ConfigurationProperty(PropertyName_defaultEmitter,
+			IsRequired = false,
+			DefaultValue = Constants.CDefaultEventEmitterConfigName)]
+		public string DefaultEmitterName
+		{
+			get { return (string)this[PropertyName_defaultEmitter]; }
+			set { this[PropertyName_defaultEmitter] = value; }
+		}
 
 		/// <summary>
 		/// Indicates the length of buffers used for event buffering.

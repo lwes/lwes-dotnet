@@ -41,7 +41,7 @@ namespace Org.Lwes
 		/// <summary>
 		/// Name identifying the default event emitter in the configuration file.
 		/// </summary>
-		public static readonly string DefaultEventEmitterConfigName = "default";
+		public const string CDefaultEventEmitterConfigName = "default";
 
 		/// <summary>
 		/// IoC container key for the default IEventEmitter instance.

@@ -51,7 +51,8 @@ namespace Org.Lwes.Emitter
 			if (!IoCAdapter.TryCreateFromIoC<IEventEmitter>(Constants.DefaultEventEmitterContainerKey, out result))
 			{ // Either there isn't a default event template defined in the IoC container
 				// or there isn't an IoC container in use... fall back to configuration section.
-				result = CreateFromConfig(Constants.DefaultEventEmitterConfigName);
+				var def = LwesConfigurationSection.Current.DefaultEmitterName;
+				result = CreateFromConfig(def);
 			}
 			if (result == null)
 			{ // Not in IoC and not configured; fallback to programmatic default.
